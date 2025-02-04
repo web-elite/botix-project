@@ -45,10 +45,10 @@ class GlobalBotMiddleware
     protected function checkUserIsMember(Nutgram $bot)
     {
         try {
-            $chatId              = $bot->chatId();
-            $channelUsername     = env('TELEGRAM_BOT_ADMIN_CHANNEL');
-            $chatMemberInfo      = $bot->getChatMember($channelUsername, $chatId);
-            $joinStatus          = $chatMemberInfo->status->value;
+            $chatId          = $bot->chatId();
+            $channelUsername = env('TELEGRAM_BOT_ADMIN_CHANNEL');
+            $chatMemberInfo  = $bot->getChatMember($channelUsername, $chatId);
+            $joinStatus      = $chatMemberInfo->status->value;
             if ($joinStatus === 'member') {
                 return true;
             }
