@@ -14,3 +14,6 @@ use SergiX44\Nutgram\Nutgram;
 |
 */
 
+// Global Middleware - (Check User Join in channel Or Not)
+$bot->middleware(GlobalBotMiddleware::class);
+
