@@ -20,3 +20,6 @@ $bot->middleware(GlobalBotMiddleware::class);
 // Starter Message Handler
 $bot->onCommand('start', StarterController::class);
 $bot->onText('عضو شدم ✅', StarterController::class);
+
+// User Subscribe
+$bot->onText('خرید اشتراک 💳', SubscribeController::class);
