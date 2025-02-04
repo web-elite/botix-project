@@ -59,7 +59,15 @@ class GlobalBotMiddleware
             Log::channel('bot')->error("Error checkUserIsMember on Line " . $e->getLine() . " : " . $e->getMessage());
         }
 
+        // if user click on pls_join_keyboards button then just show popup message
+        if ($bot->isCallbackQuery()) {
+            $bot->answerCallbackQuery(
+                text: 'شما داخل کانال عضو نیستید.',
+            );
+        } else {
             $bot->setUserData('pls_join_message_id', $msgID->message_id, $chatId);
+        }
+
         return false;
     }
 
@@ -72,7 +80,7 @@ class GlobalBotMiddleware
                 InlineKeyboardButton::make('عضویت در کانال 📢', "tg://resolve?domain=$channelUsernameLink"),
             )
             ->addRow(
-                InlineKeyboardButton::make('عضو شدم ✅'),
+                InlineKeyboardButton::make('عضو شدم ✅', callback_data: 'bot:restart'),
             );
     }
 
