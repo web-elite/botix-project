@@ -1,183 +1,335 @@
 <?php
+namespace App\Http\Controllers\Api;
 
-namespace App\Http\Controllers;
-
+use App\Http\Controllers\Controller;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class XUIApiController extends Controller
 {
-    private $host;
-    private $port;
-    private $basePath;
-    private $username;
-    private $password;
+    private $client;
+    private $baseUrl;
+    private $headers;
 
     public function __construct()
     {
-        $this->host = config('xui.host');
-        $this->port = config('xui.port');
-        $this->basePath = config('xui.base_path');
-        $this->username = config('xui.username');
-        $this->password = config('xui.password');
+        $host     = getenv('BOTIX_API_HOST');
+        $port     = getenv('BOTIX_API_PORT');
+        $hasSSL   = getenv('BOTIX_API_SSL_ACTIVE') ? 's' : '';
+        $basePath = $this->ensureLeadingSlash(getenv('BOTIX_API_BASE_PATH'));
+
+        $this->baseUrl = "http{$hasSSL}://{$host}:{$port}{$basePath}";
+
+        $this->headers = [
+            'cf-shekan' => 'botix-project',
+            'Accept'    => 'application/json',
+        ];
+
+        $this->client = new Client([
+            'headers' => $this->headers,
+        ]);
+    }
+
+    private function ensureLeadingSlash($path)
+    {
+        return ltrim($path, '/') !== $path ? $path : '/' . $path;
     }
 
     // Login Method
     public function login()
     {
-        $response = Http::asForm()->post("http://{$this->host}:{$this->port}{$this->basePath}/login", [
-            'username' => $this->username,
-            'password' => $this->password,
-        ]);
+        $username = getenv('BOTIX_API_USERNAME');
+        $password = getenv('BOTIX_API_PASSWORD');
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+        try {
+            $response = $this->client->post($this->baseUrl . '/login', [
+                'form_params' => [
+                    'username' => $username,
+                    'password' => $password,
+                ],
+            ]);
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error('Login API error', ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to login'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Login failed'], $response->status());
     }
 
     // Get Inbounds List
     public function getInbounds()
     {
-        $response = Http::acceptJson()->get("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/list");
+        try {
+            $response = $this->client->get('/panel/api/inbounds/list');
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error('Get Inbounds API error', ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch inbounds'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to fetch inbounds'], $response->status());
     }
 
     // Get Inbound Details
     public function getInbound($id)
     {
-        $response = Http::acceptJson()->get("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/get/{$id}");
+        try {
+            $response = $this->client->get("/panel/api/inbounds/get/{$id}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Get Inbound Details API error for ID {$id}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch inbound details'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to fetch inbound details'], $response->status());
     }
 
     // Get Client Traffics by Email
     public function getClientTrafficsByEmail($email)
     {
-        $response = Http::acceptJson()->get("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/getClientTraffics/{$email}");
+        try {
+            $response = $this->client->get("/panel/api/inbounds/getClientTraffics/{$email}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Get Client Traffics by Email API error for email {$email}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch client traffics'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to fetch client traffics'], $response->status());
     }
 
     // Get Client Traffics by UUID
     public function getClientTrafficsById($uuid)
     {
-        $response = Http::acceptJson()->get("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/getClientTrafficsById/{$uuid}");
+        try {
+            $response = $this->client->get("/panel/api/inbounds/getClientTrafficsById/{$uuid}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Get Client Traffics by UUID API error for UUID {$uuid}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch client traffics'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to fetch client traffics'], $response->status());
     }
 
     // Add Inbound
     public function addInbound(Request $request)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/add", $request->all());
+        try {
+            $response = $this->client->post('/panel/api/inbounds/add', [
+                'json' => $request->all(),
+            ]);
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error('Add Inbound API error', ['exception' => $e->getMessage(), 'request' => $request->all()]);
+            return response()->json(['error' => 'Failed to add inbound'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to add inbound'], $response->status());
     }
 
     // Update Inbound
     public function updateInbound($id, Request $request)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/update/{$id}", $request->all());
+        try {
+            $response = $this->client->post("/panel/api/inbounds/update/{$id}", [
+                'json' => $request->all(),
+            ]);
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Update Inbound API error for ID {$id}", ['exception' => $e->getMessage(), 'request' => $request->all()]);
+            return response()->json(['error' => 'Failed to update inbound'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to update inbound'], $response->status());
     }
 
     // Delete Inbound
     public function deleteInbound($id)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/del/{$id}");
+        try {
+            $response = $this->client->post("/panel/api/inbounds/del/{$id}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Delete Inbound API error for ID {$id}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to delete inbound'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to delete inbound'], $response->status());
     }
 
     // Reset Client Traffic
     public function resetClientTraffic($id)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/clients/resetTraffic/{$id}");
+        try {
+            $response = $this->client->post("/panel/api/clients/resetTraffic/{$id}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Reset Client Traffic API error for ID {$id}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to reset client traffic'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to reset client traffic'], $response->status());
     }
 
     // Add Client to Inbound
     public function addClientToInbound($id, Request $request)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/clients/add/{$id}", $request->all());
+        try {
+            $response = $this->client->post("/panel/api/clients/add/{$id}", [
+                'json' => $request->all(),
+            ]);
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Add Client to Inbound API error for ID {$id}", ['exception' => $e->getMessage(), 'request' => $request->all()]);
+            return response()->json(['error' => 'Failed to add client to inbound'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to add client to inbound'], $response->status());
     }
 
     // Delete Client
     public function deleteClient($id)
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/clients/del/{$id}");
+        try {
+            $response = $this->client->post("/panel/api/clients/del/{$id}");
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error("Delete Client API error for ID {$id}", ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to delete client'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to delete client'], $response->status());
     }
 
     // Reset All Inbound Traffics
     public function resetInboundTraffics()
     {
-        $response = Http::acceptJson()->post("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/inbounds/resetAllTraffics");
+        try {
+            $response = $this->client->post('/panel/api/inbounds/resetAllTraffics');
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error('Reset All Inbound Traffics API error', ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to reset all inbound traffics'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
-
-        return response()->json(['error' => 'Failed to reset all inbound traffics'], $response->status());
     }
 
     // Online Clients
     public function getOnlineClients()
     {
-        $response = Http::acceptJson()->get("http://{$this->host}:{$this->port}{$this->basePath}/panel/api/clients/online");
+        try {
+            $response = $this->client->get('/panel/api/clients/online');
 
-        if ($response->successful()) {
-            return response()->json($response->json());
+            return $this->handleResponse($response);
+        } catch (RequestException $e) {
+            Log::channel('api')->error('Get Online Clients API error', ['exception' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to fetch online clients'], 500);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
+        }
+    }
+
+    // Handle API Response
+    private function handleResponse($response)
+    {
+        try {
+            $statusCode = $response->getStatusCode();
+            $body       = json_decode($response->getBody(), true);
+
+            if ($statusCode >= 200 && $statusCode < 300) {
+                return response()->json($body);
+            }
+
+            return response()->json(['error' => $body['message'] ?? 'Request failed'], $statusCode);
+        } catch (\Throwable $th) {
+            Log::channel('api')->error('In Handle Response Error: ', ['exception' => $e->getMessage()]);
+            return response()->json([
+                'error'   => 'An unexpected error occurred while handling the API response.',
+                'code'    => 500,
+                'message' => $th->getMessage(),
+            ]);
         }
 
-        return response()->json(['error' => 'Failed to fetch online clients'], $response->status());
     }
 }
