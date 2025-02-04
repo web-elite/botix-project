@@ -14,12 +14,20 @@ class GlobalBotMiddleware
     {
         // $this->setUserInfo($bot);
         $passed = true;
+        $this->saveLastMsg($bot);
         $this->saveUserInfo($bot);
         $passed = $this->checkUserIsMember($bot);
 
         if ($passed) {
             $next($bot);
         }
+    }
+
+    protected function saveLastMsg(Nutgram $bot)
+    {
+        $chatId = $bot->chatId();
+        $msgId  = $bot->getMessageId();
+        $bot->setUserData('last_message_id', $msgId, $chatId);
     }
 
     protected function saveUserInfo(Nutgram $bot)
