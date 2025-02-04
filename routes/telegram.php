@@ -17,3 +17,6 @@ use SergiX44\Nutgram\Nutgram;
 // Global Middleware - (Check User Join in channel Or Not)
 $bot->middleware(GlobalBotMiddleware::class);
 
+// Starter Message Handler
+$bot->onCommand('start', StarterController::class);
+$bot->onText('عضو شدم ✅', StarterController::class);
