@@ -123,8 +123,39 @@ return [
             'handler' => NullHandler::class,
         ],
 
-        'emergency' => [
+        'bot'        => [
+            'driver'         => 'daily',
+            'path'           => storage_path('logs/bot.log'),
+            'level'          => 'debug',
+            'days'           => 7,
+            'formatter'      => \Monolog\Formatter\LineFormatter::class,
+            'formatter_with' => [
+                'dateFormat'                => 'H:i:s',
+                'format'                    => "[%datetime%] %level_name%: %message% %context%\n",
+                'allowEmptyContextAndExtra' => false,
+            ],
+        ],
+
+        'emergency'  => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'telegram'   => [
+            'driver'  => 'custom',
+            'via'     => \Nutgram\Laravel\Log\NutgramLogger::class,
+            'level'   => 'debug',
+            'chat_id' => env('NUTGRAM_LOG_CHAT_ID'), // any chat_id where bot can write messages
+        ],
+
+        'nutgram'    => [
+            'driver'     => 'monolog',
+            'level'      => env('LOG_LEVEL', 'debug'),
+            'handler'    => StreamHandler::class,
+            'formatter'  => Nutgram\Laravel\Log\NutgramFormatter::class,
+            'with'       => [
+                'stream' => 'php://stderr',
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
         ],
 
     ],
