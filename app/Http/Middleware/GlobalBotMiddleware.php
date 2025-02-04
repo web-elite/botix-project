@@ -65,6 +65,10 @@ class GlobalBotMiddleware
                 text: 'شما داخل کانال عضو نیستید.',
             );
         } else {
+            $msgID = $bot->sendMessage(
+                text: "📢 لطفا ابتدا در کانال دریچه عوض شوید. \n$channelUsername",
+                reply_markup: $this->pls_join_keyboards(),
+            );
             $bot->setUserData('pls_join_message_id', $msgID->message_id, $chatId);
         }
 
