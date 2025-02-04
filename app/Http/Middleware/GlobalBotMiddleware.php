@@ -50,6 +50,8 @@ class GlobalBotMiddleware
             $chatMemberInfo  = $bot->getChatMember($channelUsername, $chatId);
             $joinStatus      = $chatMemberInfo->status->value;
             if ($joinStatus === 'member') {
+                $msgID = $bot->getUserData('pls_join_message_id', $chatId);
+                $bot->deleteMessage($chatId, $msgID);
                 return true;
             }
             Log::channel('bot')->error("http://t.me/{$chatMemberInfo->user->username} ($chatId) want to use robot but join status is: $joinStatus");
@@ -57,10 +59,7 @@ class GlobalBotMiddleware
             Log::channel('bot')->error("Error checkUserIsMember on Line " . $e->getLine() . " : " . $e->getMessage());
         }
 
-        $bot->sendMessage(
-            text: "📢 لطفا ابتدا در کانال دریچه عوض شوید. \n$channelUsername",
-            reply_markup: $this->pls_join_keyboards(),
-        );
+            $bot->setUserData('pls_join_message_id', $msgID->message_id, $chatId);
         return false;
     }
 
