@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
@@ -32,8 +33,13 @@ class GlobalBotMiddleware
 
     protected function saveUserInfo(Nutgram $bot)
     {
-        $chatId              = $bot->chatId();
-
+        $chatId = $bot->chatId();
+        $user   = $bot->user();
+        $user   = User::updateOrCreate(
+            ['tg_id' => $chatId],
+            ['tg_data' => json_encode($user)]
+        );
+        $bot->setUserData('user_id', $user->id, $chatId);
     }
 
     protected function checkUserIsMember(Nutgram $bot)
@@ -71,9 +77,4 @@ class GlobalBotMiddleware
             );
     }
 
-    protected function setUserInfo(Nutgram $bot)
-    {
-        // $user = get_current_user_from_db($bot->userId());
-        // $bot->set('user', $user);
-    }
 }
