@@ -68,12 +68,12 @@ class StartCommand
                 KeyboardButton::make('اشتراک من 👤'),
             )
             ->addRow(
-                KeyboardButton::make('دعوت دوستان 🔗'),
+                // KeyboardButton::make('دعوت دوستان 🔗'),
                 KeyboardButton::make('چرا دریچه؟ 😎'),
                 KeyboardButton::make('سوالات متداول ⁉️'),
             )
             ->addRow(
-                KeyboardButton::make('پشتیبانی هوش مصنوعی 🤖'),
+                // KeyboardButton::make('پشتیبانی هوش مصنوعی 🤖'),
                 KeyboardButton::make('آموزش ها 📚'),
                 KeyboardButton::make('پشتیبانی 🫂'),
             );
