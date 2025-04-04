@@ -1,0 +1,134 @@
+<?php
+namespace App\Services\Payment;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+class ZibalService
+{
+    private $trackId;
+    private $merchantId;
+
+    public function __construct()
+    {
+        $this->merchantId = env('ZIBAL_MERCHANT_KEY');
+    }
+
+    public function createPaymentLink(int $amount, int $mobile = null, ?string $callbackUrl = null): string
+    {
+        try {
+            $callbackUrl = $callbackUrl ?? 'https://bya2game.ir/thanks';
+
+            $paymentData = [
+                'merchant'    => $this->merchantId,
+                'amount'      => $amount * 10,
+                'callbackUrl' => $callbackUrl,
+            ];
+
+            $response = $this->sendToZibal($paymentData);
+
+            if ($response && isset($response['trackId'])) {
+                $this->trackId = $response['trackId'];
+                return "https://gateway.zibal.ir/start/" . $this->trackId;
+            }
+
+        } catch (Throwable $e) {
+            Log::channel('gateways')->error("Zibal Error in {$context}:", [
+                'error_message' => $e->getMessage(),
+                'file'          => $e->getFile(),
+                'line'          => $e->getLine(),
+                'request_data'  => $data,
+                'timestamp'     => now()->toDateTimeString(),
+            ]);
+        }
+
+        return false;
+    }
+
+    public function sendToZibal(array $paymentData)
+    {
+        $url = 'https://gateway.zibal.ir/v1/request';
+
+        try {
+            $client   = new Client();
+            $response = $client->post($url, [
+                'json'    => $paymentData,
+                'headers' => ['Content-Type' => 'application/json'],
+            ]);
+
+            $responseData = json_decode($response->getBody(), true);
+
+            Log::channel('gateways')->info('Zibal Payment Request:', [
+                'request'  => $paymentData,
+                'response' => $responseData,
+            ]);
+
+            return $responseData;
+        } catch (\Exception $e) {
+            Log::channel('gateways')->error('Zibal Payment Error:', [
+                'error'   => $e->getMessage(),
+                'request' => $paymentData,
+            ]);
+
+            return ['status' => 'error', 'message' => 'Payment request failed'];
+        }
+    }
+
+    public function verify(int $trackId)
+    {
+        $url = 'https://gateway.zibal.ir/v1/verify';
+
+        $data = [
+            'merchant' => $this->merchantId,
+            'trackId'  => $trackId,
+        ];
+
+        try {
+            $client   = new Client();
+            $response = $client->post($url, [
+                'json'    => $data,
+                'headers' => ['Content-Type' => 'application/json'],
+            ]);
+
+            $responseData = json_decode($response->getBody(), true);
+
+            Log::channel('gateways')->info('Zibal Verify:', [
+                'request'  => $data,
+                'response' => $responseData,
+            ]);
+
+            return $responseData;
+        } catch (\Exception $e) {
+            Log::channel('gateways')->error('Zibal Verify Error:', [
+                'error'   => $e->getMessage(),
+                'request' => $data,
+            ]);
+
+            return ['status' => 'error', 'message' => 'Verify request failed'];
+        }
+    }
+
+    public function createOrder($userId, $amount, $planLabel)
+    {
+        $endpoint = "https://bya2game.ir/wp-json/wc/v3/orders";
+        $data     = [
+            'payment_method'       => 'zibal',
+            'payment_method_title' => 'Zibal Payment Gateway',
+            'set_paid'             => false,
+            'customer_id'          => $userId,
+            'line_items'           => [
+                [
+                    'name'  => $planLabel,
+                    'total' => $amount,
+                ],
+            ],
+        ];
+
+        $response = Http::withBasicAuth('consumer_key', 'consumer_secret')
+            ->post($endpoint, $data);
+
+        return $response->json();
+    }
+}
