@@ -33,14 +33,19 @@ class UserService
         $downloadGB = bytes_to_gb($data['download'] ?? 0);
         $totalGB = bytes_to_gb($data['totalGB'] ?? 0);
 
-        // محاسبه زمان باقی‌مانده
-        $timeLeft = calculate_time_left($data['time_limit']);
-
         // محاسبه درصد مصرف
         $usagePercent = number_format(($data['usage'] ?? 0), 2);
 
-        // تاریخ انقضا
-        $expiryDate = date("Y-m-d H:i:s", ($data['time_limit'] ?? 0) / 1000);
+        // محاسبه زمان باقی‌مانده
+        $calcTimeLeft = calculate_time_left($data['time_limit']);
+
+        if($calcTimeLeft['days'] > 0){
+            $timeLeft =  "({$calcTimeLeft['days']} روز و {$calcTimeLeft['hours']} ساعت و {$calcTimeLeft['minutes']} دقیقه دیگر باقی مانده)\n\n";
+            $expiryDate = date("Y-m-d H:i:s", ($data['time_limit'] ?? 0) / 1000);
+        }else{
+            $timeLeft = "\n";
+            $expiryDate = "نامحدود";
+        }
 
         // ساخت لینک‌های مربوط به اشتراک
         $panelBase = (env('XUI_SSL_ACTIVE') ? 'https://' : 'http://') . env('XUI_SUB_DOMAIN') . ':' . env('XUI_SUB_PORT');
@@ -53,7 +58,7 @@ class UserService
             "📌 *نام اشتراک*: $planName\n" .
             "📊 *مصرف*: $usagePercent% (آپلود: $uploadGB گیگ / دانلود: $downloadGB گیگ)\n" .
             "🧮 *حجم کل*: $totalGB گیگ\n" .
-            "⏳ *تاریخ انقضا*: $expiryDate\n({$timeLeft['days']} روز و {$timeLeft['hours']} ساعت و {$timeLeft['minutes']} دقیقه دیگر باقی مانده)\n\n" .
+            "⏳ *تاریخ انقضا*: $expiryDate\n$timeLeft" .
             "🔗 *لینک معمولی*:\n`$subUrl`\n" .
             "🔗 *لینک حرفه‌ای*:\n`$jsonUrl`\n\n";
     }
