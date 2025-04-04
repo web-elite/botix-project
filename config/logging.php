@@ -125,7 +125,33 @@ return [
 
         'bot'        => [
             'driver'         => 'daily',
-            'path'           => storage_path('logs/bot.log'),
+            'path'           => storage_path('logs/bot/bot.log'),
+            'level'          => 'debug',
+            'days'           => 7,
+            'formatter'      => \Monolog\Formatter\LineFormatter::class,
+            'formatter_with' => [
+                'dateFormat'                => 'H:i:s',
+                'format'                    => "[%datetime%] %level_name%: %message% %context%\n",
+                'allowEmptyContextAndExtra' => false,
+            ],
+        ],
+
+        'cron'       => [
+            'driver'         => 'daily',
+            'path'           => storage_path('logs/cron.log'),
+            'level'          => 'debug',
+            'days'           => 7,
+            'formatter'      => \Monolog\Formatter\LineFormatter::class,
+            'formatter_with' => [
+                'dateFormat'                => 'H:i:s',
+                'format'                    => "[%datetime%] %level_name%: %message% %context%\n",
+                'allowEmptyContextAndExtra' => false,
+            ],
+        ],
+
+        'xui-api'    => [
+            'driver'         => 'daily',
+            'path'           => storage_path('logs/services/xui/xui-api.log'),
             'level'          => 'debug',
             'days'           => 7,
             'formatter'      => \Monolog\Formatter\LineFormatter::class,
@@ -141,6 +167,7 @@ return [
         ],
 
         'telegram'   => [
+            'path'    => storage_path('logs/services/telegram.log'),
             'driver'  => 'custom',
             'via'     => \Nutgram\Laravel\Log\NutgramLogger::class,
             'level'   => 'debug',
@@ -148,6 +175,7 @@ return [
         ],
 
         'nutgram'    => [
+            'path'       => storage_path('logs/services/nutgram.log'),
             'driver'     => 'monolog',
             'level'      => env('LOG_LEVEL', 'debug'),
             'handler'    => StreamHandler::class,
