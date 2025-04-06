@@ -1,12 +1,13 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Transactions;
+use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
-    public function paymentCallback(Request $request) :void
+    public function paymentCallback(Request $request): JsonResponse
     {
         if ($request->header('X-SECRET-KEY') !== env('WORDPRESS_SECRET_KEY')) {
             abort(403, 'Unauthorized');
@@ -18,12 +19,10 @@ class PaymentController extends Controller
             'trackId' => 'required|string|max:50',
         ]);
 
-        Transactions::updateOrCreate(
-            ['track_id' => $validated['trackId']],
-            [
-                'is_successful' => $validated['success'] && $validated['status'],
-                'raw_data'      => $request->all(),
-            ]
-        );
+        $result = (new PaymentService)->confirmTransaction($validated['trackId']);
+
+        return response()->json([
+            'success' => $result,
+        ]);
     }
 }
