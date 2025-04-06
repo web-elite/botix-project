@@ -27,9 +27,7 @@ class SubscribeMenu extends InlineMenu
             );
         }
 
-        $this->addButtonRow(
-            InlineKeyboardButton::make('❌ لغو', callback_data: 'cancel')
-        )->showMenu();
+        $this->showMenu();
     }
 
     protected function text(): string
