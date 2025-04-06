@@ -2,7 +2,7 @@
 
 use SergiX44\Nutgram\Nutgram;
 
-if (! function_exists('escape_markdown')) {
+if (!function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
         $characters = ['[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
@@ -13,7 +13,7 @@ if (! function_exists('escape_markdown')) {
     }
 }
 
-if (! function_exists('format_bytes')) {
+if (!function_exists('format_bytes')) {
     function format_bytes(int $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -28,7 +28,7 @@ if (! function_exists('format_bytes')) {
     }
 }
 
-if (! function_exists('show_loading_bot')) {
+if (!function_exists('show_loading_bot')) {
     function show_loading_bot(Nutgram $bot, ?string $text = null): void
     {
         try {
@@ -53,7 +53,7 @@ if (! function_exists('show_loading_bot')) {
     }
 }
 
-if (! function_exists('hide_loading_bot')) {
+if (!function_exists('hide_loading_bot')) {
     function hide_loading_bot(Nutgram $bot): void
     {
         try {
@@ -75,14 +75,14 @@ if (! function_exists('hide_loading_bot')) {
     }
 }
 
-if (! function_exists('bytes_to_gb')) {
+if (!function_exists('bytes_to_gb')) {
     function bytes_to_gb($bytes)
     {
         return number_format($bytes / (1024 ** 3), 2);
     }
 }
 
-if (! function_exists('calculate_time_left')) {
+if (!function_exists('calculate_time_left')) {
     function calculate_time_left($timeLimit)
     {
         $timeLimitSec = intval($timeLimit / 1000);
@@ -96,5 +96,28 @@ if (! function_exists('calculate_time_left')) {
             'hours'   => floor(($remaining % (60 * 60 * 24)) / (60 * 60)),
             'minutes' => floor(($remaining % (60 * 60)) / 60),
         ];
+    }
+}
+
+if (!function_exists('get_admin_ids')) {
+    function get_admin_ids(): array
+    {
+        return array_map(
+            fn($id) => trim($id),
+            explode(',', env('TELEGRAM_BOT_ADMIN', ''))
+        );
+    }
+}
+
+/**
+ * Check if the given chat ID is an admin.
+ *
+ * @param int $chatId
+ * @return bool
+ */
+if (!function_exists('this_id_is_admin')) {
+    function this_id_is_admin(int $chatId): bool
+    {
+        return in_array($chatId, get_admin_ids(), true);
     }
 }
