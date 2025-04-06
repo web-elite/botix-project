@@ -11,26 +11,11 @@ class StartCommand
 {
     public function __invoke(Nutgram $bot)
     {
-        $adminIds = $this->getAdminIds();
-
-        if ($this->isAdmin($bot->chatId(), $adminIds)) {
+        if (this_id_is_admin($bot->chatId())) {
             $this->handleAdmin($bot);
         } else {
             $this->handleUser($bot);
         }
-    }
-
-    protected function getAdminIds(): array
-    {
-        return array_map(
-            fn($id) => trim($id),
-            explode(',', env('TELEGRAM_BOT_ADMIN', ''))
-        );
-    }
-
-    protected function isAdmin(string $chatId, array $adminIds): bool
-    {
-        return in_array($chatId, $adminIds, true);
     }
 
     protected function handleAdmin(Nutgram $bot)
