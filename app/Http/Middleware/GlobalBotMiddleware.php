@@ -21,10 +21,10 @@ class GlobalBotMiddleware
     public function __invoke(Nutgram $bot, callable $next): void
     {
 
-        $bot->sendMessage(
-            text: "🔃 ربات در حال بروزرسانی می‌باشد... \n📢 آدرس کانال دریچه: " . env('TELEGRAM_BOT_ADMIN_CHANNEL') . "\n آدرس پشتیبانی: @Dariche_vpn_admin\n"
-        );
-        return;
+        // $bot->sendMessage(
+        //     text: "🔃 ربات در حال بروزرسانی می‌باشد... \n📢 آدرس کانال دریچه: " . env('TELEGRAM_BOT_ADMIN_CHANNEL') . "\n آدرس پشتیبانی: @Dariche_vpn_admin\n"
+        // );
+        // return;
         $this->saveLastMessage($bot);
         $this->saveUserInfo($bot);
 
@@ -70,13 +70,16 @@ class GlobalBotMiddleware
     protected function checkUserIsMember(Nutgram $bot): bool
     {
         try {
-            $chatId          = $bot->chatId();
+            $chatId   = $bot->chatId();
+
+            if (this_id_is_admin($chatId)) {
+                return true;
+            }
             $channelUsername = env('TELEGRAM_BOT_ADMIN_CHANNEL');
 
             $chatMemberInfo = $bot->getChatMember($channelUsername, $chatId);
             $joinStatus     = $chatMemberInfo->status->value;
-
-            if ($joinStatus === 'member') {
+            if (in_array($joinStatus,['member','administrator','creator'])) {
                 $this->deleteJoinMessage($bot, $chatId);
                 return true;
             }
