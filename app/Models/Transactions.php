@@ -1,13 +1,32 @@
 <?php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Transactions extends Model
 {
-    protected $fillable = ['track_id', 'is_successful', 'raw_data'];
-    protected $casts    = [
-        'raw_data'      => 'array',
-        'is_successful' => 'boolean',
+    use HasFactory;
+    const STATUS_PENDING = 'pending';
+    const STATUS_PAID = 'paid';
+    const STATUS_FAILED = 'failed';
+
+    protected $fillable = [
+        'user_id',
+        'subscription_plan_id',
+        'amount',
+        'gateway',
+        'ref_id',
+        'ref_number',
+        'card_number',
+        'status',
+        'paid_at',
+        'description',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
 }
