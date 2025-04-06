@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transactions', function (Blueprint $table) {
+        Schema::create('user_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->string('track_id');
-            $table->boolean('is_successful')->default(false);
-            $table->json('raw_data')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('subscription_plan_id')->constrained()->onDelete('cascade');
+            $table->timestamp('starts_at');
+            $table->timestamp('expires_at');
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('transactions');
+        Schema::dropIfExists('user_subscriptions');
     }
 };
