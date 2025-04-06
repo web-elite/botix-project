@@ -2,86 +2,119 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\UserSyncService;
 
 class UserService
 {
     /**
-     * Get user data from the database.
+     * Retrieve synced XUI user data by Telegram ID.
      *
      * @param string $tgId
      * @return array
      */
-    public function getUserXuiData($tgId)
+    public function getUserXuiData(string $tgId): array
     {
-        $sync = new UserSyncService;
-        $sync->syncXuiUsers();
+        (new UserSyncService)->syncXuiUsers();
+
         $user = User::where('tg_id', $tgId)->first();
-        if (! $user) {
-            return [];
-        }
-        $xuiUser = $user->meta['xui_data'] ?? null;
-        return $xuiUser;
+
+        return $user->meta['xui_data'] ?? [];
     }
 
-    private function is_expired($timeLimit): bool
+    /**
+     * Determine if a given timestamp (ms) is expired.
+     *
+     * @param int $timeLimit
+     * @return bool
+     */
+    private function isExpired(int $timeLimit): bool
     {
         return intval($timeLimit / 1000) <= time();
     }
 
-    public function formatUserSubInfo($subId, $data)
+    /**
+     * Format user's subscription information.
+     *
+     * @param string $subId
+     * @param array $data
+     * @return string
+     */
+    public function formatUserSubInfo(string $subId, array $data): string
     {
-        // محاسبه درصد مصرف
-        $usagePercent = number_format(($data['usage'] ?? 0), 2);
+        $statusMap = [
+            'active'    => '✅ فعال',
+            'expired'   => '❌ منقضی',
+            'pending'   => '⏳ در انتظار فعالسازی',
+            'suspended' => '⛔ غیرفعال',
+            'canceled'  => '❌ لغو شده',
+            'deleted'   => '❌ حذف شده',
+            'unknown'   => '❓ ناشناخته',
+        ];
 
-        // محاسبه زمان باقی‌مانده
-        $calcTimeLeft = calculate_time_left($data['time_limit']);
-        $nowTimestamp = time() * 1000;
+        $timeLimit    = $data['time_limit'] ?? 0;
+        $hasTimeLimit = $timeLimit > 0;
+        $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
+        $userStatus   = $data['status'] ?? null;
 
-        $hasTimeLimit = isset($data['time_limit']) && $data['time_limit'] > 0;
-        $isExpired    = $hasTimeLimit && $data['time_limit'] < $nowTimestamp;
+        // Determine subscription status
+        $status = match (true) {
+            $userStatus === 'suspended' => $statusMap['suspended'],
+            $userStatus === 'canceled' => $statusMap['canceled'],
+            $userStatus === 'deleted' => $statusMap['deleted'],
+            ! $hasTimeLimit => $statusMap['active'],
+            $isExpired => $statusMap['expired'],
+            default => $statusMap['active'],
+        };
 
-        // وضعیت اشتراک
-        $status   = $this->is_expired($data['time_limit'] ?? 0) ? "❌ منقضی" : "✅ فعال";
-        $planName = $data['name'];
+        $planName     = $data['name'] ?? 'نامشخص';
+        $uploadGB     = bytes_to_gb($data['upload'] ?? 0);
+        $downloadGB   = bytes_to_gb($data['download'] ?? 0);
+        $totalGBVal   = $data['totalGB'] ?? 0;
+        $totalGB      = $totalGBVal > 0 ? bytes_to_gb($totalGBVal) . ' گیگ' : 'نامحدود';
+        $usagePercent = number_format($data['usage'] ?? 0, 2);
 
-        // محاسبه ترافیک
-        $uploadGB   = bytes_to_gb($data['upload'] ?? 0);
-        $downloadGB = bytes_to_gb($data['download'] ?? 0);
-        $totalGB    = bytes_to_gb($data['totalGB'] ?? 0);
-        $totalGB    = $totalGB > 0 ? $totalGB . ' گیگ' : "نامحدود";
-
-        // درصد مصرف
-        $usagePercent = number_format(($data['usage'] ?? 0), 2);
-
-        // محاسبه زمان باقی‌مانده
+        // Time left or expiry
         if ($hasTimeLimit) {
-            if (! $isExpired) {
-                $calcTimeLeft = calculate_time_left($data['time_limit']);
+            $expiryDate = date("Y-m-d H:i:s", $timeLimit / 1000);
 
-                $timeLeft   = "({$calcTimeLeft['days']} روز و {$calcTimeLeft['hours']} ساعت و {$calcTimeLeft['minutes']} دقیقه دیگر باقی مانده)\n\n";
-                $expiryDate = date("Y-m-d H:i:s", $data['time_limit'] / 1000);
-            } else {
-                $timeLeft   = "\n";
-                $expiryDate = "⛔ منقضی شده";
-            }
+            $timeLeft = $isExpired
+            ? ''
+            : sprintf(
+                "(%d روز و %d ساعت و %d دقیقه دیگر باقی مانده)\n\n",
+                calculate_time_left($timeLimit)['days'],
+                calculate_time_left($timeLimit)['hours'],
+                calculate_time_left($timeLimit)['minutes']
+            );
         } else {
-            $timeLeft   = "\n";
-            $expiryDate = "نامحدود";
+            $expiryDate = 'نامحدود';
+            $timeLeft   = "\n\n";
         }
 
-        // ساخت لینک‌های مربوط به اشتراک
-        $panelBase = (env('XUI_SSL_ACTIVE') ? 'https://' : 'http://') . env('XUI_SUB_DOMAIN') . ':' . env('XUI_SUB_PORT');
-        $subUrl    = $panelBase . '/' . env('XUI_SUB_PATH') . '/' . ($data['subscription'] ?? '');
-        $jsonUrl   = $panelBase . '/' . env('XUI_SUB_JSON_PATH') . '/' . ($data['subscription'] ?? '');
+        // Subscription links
+        $panelBase = sprintf(
+            "%s://%s:%s",
+            env('XUI_SSL_ACTIVE') ? 'https' : 'http',
+            env('XUI_SUB_DOMAIN'),
+            env('XUI_SUB_PORT')
+        );
 
-        return "━━━━━━━━━━━━━━━━━━━━\n" .
-            "🔹 *کد اشتراک: " . $subId . "*\n" .
-            "📛 *وضعیت*: $status\n" .
-            "📌 *نام اشتراک*: $planName\n" .
-            "📊 *مصرف*: $usagePercent% (آپلود: $uploadGB گیگ / دانلود: $downloadGB گیگ)\n" .
-            "🧮 *حجم کل*: $totalGB\n" .
-            "⏳ *تاریخ انقضا*: $expiryDate\n$timeLeft" .
-            "🔗 *لینک معمولی*:\n`$subUrl`\n" .
-            "🔗 *لینک حرفه‌ای*:\n`$jsonUrl`\n\n";
+        $subscriptionId = $data['subscription'] ?? '';
+        $subUrl         = "{$panelBase}/" . env('XUI_SUB_PATH') . "/{$subscriptionId}";
+        $jsonUrl        = "{$panelBase}/" . env('XUI_SUB_JSON_PATH') . "/{$subscriptionId}";
+
+        return <<<INFO
+━━━━━━━━━━━━━━━━━━━━
+🔹 *کد اشتراک: {$subId}*
+📛 *وضعیت*: {$status}
+📌 *نام اشتراک*: {$planName}
+📊 *مصرف*: {$usagePercent}% (آپلود: {$uploadGB} گیگ / دانلود: {$downloadGB} گیگ)
+🧮 *حجم کل*: {$totalGB}
+⏳ *تاریخ انقضا*: {$expiryDate}
+{$timeLeft}🔗 *لینک معمولی*:
+`{$subUrl}`
+🔗 *لینک حرفه‌ای*:
+`{$jsonUrl}`
+
+INFO;
     }
 }
