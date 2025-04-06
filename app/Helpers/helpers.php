@@ -85,13 +85,16 @@ if (! function_exists('bytes_to_gb')) {
 if (! function_exists('calculate_time_left')) {
     function calculate_time_left($timeLimit)
     {
-        $currentTime   = time() * 1000;
-        $remainingTime = max(0, $timeLimit - $currentTime);
+        $timeLimitSec = intval($timeLimit / 1000);
+
+        $currentTime = time();
+
+        $remaining = max(0, $timeLimitSec - $currentTime);
 
         return [
-            'days'    => floor($remainingTime / (1000 * 60 * 60 * 24)),
-            'hours'   => floor(($remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-            'minutes' => floor(($remainingTime % (1000 * 60 * 60)) / (1000 * 60)),
+            'days'    => floor($remaining / (60 * 60 * 24)),
+            'hours'   => floor(($remaining % (60 * 60 * 24)) / (60 * 60)),
+            'minutes' => floor(($remaining % (60 * 60)) / 60),
         ];
     }
 }
