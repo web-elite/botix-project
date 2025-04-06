@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\UserSyncService;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
@@ -20,6 +20,11 @@ class GlobalBotMiddleware
      */
     public function __invoke(Nutgram $bot, callable $next): void
     {
+
+        $bot->sendMessage(
+            text: "🔃 ربات در حال بروزرسانی می‌باشد... \n📢 آدرس کانال دریچه: " . env('TELEGRAM_BOT_ADMIN_CHANNEL') . "\n آدرس پشتیبانی: @Dariche_vpn_admin\n"
+        );
+        return;
         $this->saveLastMessage($bot);
         $this->saveUserInfo($bot);
 
@@ -36,9 +41,11 @@ class GlobalBotMiddleware
      */
     protected function saveLastMessage(Nutgram $bot): void
     {
-        $chatId = $bot->chatId();
-        $messageId = $bot->getMessageId();
-        $bot->setUserData('last_message_id', $messageId, $chatId);
+        $chatId    = $bot->chatId();
+        $messageId = $bot->messageId(); // Get the current message ID
+        if ($messageId) {
+            $bot->setUserData('last_message_id', $messageId, $chatId); // Save the message ID
+        }
     }
 
     /**
@@ -49,15 +56,9 @@ class GlobalBotMiddleware
      */
     protected function saveUserInfo(Nutgram $bot): void
     {
-        $chatId = $bot->chatId();
         $userData = $bot->user();
-
-        $user = User::updateOrCreate(
-            ['tg_id' => $chatId],
-            ['tg_data' => json_encode($userData)]
-        );
-
-        $bot->setUserData('user_id', $user->id, $chatId);
+        $usersync = new UserSyncService;
+        $usersync->syncTelegramUser($userData);
     }
 
     /**
@@ -69,11 +70,11 @@ class GlobalBotMiddleware
     protected function checkUserIsMember(Nutgram $bot): bool
     {
         try {
-            $chatId = $bot->chatId();
+            $chatId          = $bot->chatId();
             $channelUsername = env('TELEGRAM_BOT_ADMIN_CHANNEL');
 
             $chatMemberInfo = $bot->getChatMember($channelUsername, $chatId);
-            $joinStatus = $chatMemberInfo->status->value;
+            $joinStatus     = $chatMemberInfo->status->value;
 
             if ($joinStatus === 'member') {
                 $this->deleteJoinMessage($bot, $chatId);
@@ -98,9 +99,15 @@ class GlobalBotMiddleware
      */
     protected function deleteJoinMessage(Nutgram $bot, int $chatId): void
     {
-        $messageId = $bot->getUserData('pls_join_message_id', $chatId);
-        if ($messageId) {
-            $bot->deleteMessage($chatId, $messageId);
+        try {
+            $messageId = $bot->getUserData('pls_join_message_id', $chatId);
+            if ($messageId > 0) {
+                $bot->deleteMessage($chatId, $messageId);
+            }
+        } catch (Exception $e) {
+            if (strpos($e->getMessage(), 'delete not found') === false) {
+                Log::channel('bot')->error("Unexpected error in deleteJoinMessage: " . $e->getMessage());
+            }
         }
     }
 
@@ -115,7 +122,7 @@ class GlobalBotMiddleware
     protected function logNonMemberAttempt(object $chatMemberInfo, int $chatId, string $joinStatus): void
     {
         $username = $chatMemberInfo->user->username ?? 'Unknown';
-        Log::channel('bot')->error("http://t.me/{$username} ($chatId) attempted to use the bot but join status is: $joinStatus");
+        Log::channel('bot')->info("http://t.me/{$username} ($chatId) attempted to use the bot but join status is: $joinStatus");
     }
 
     /**
