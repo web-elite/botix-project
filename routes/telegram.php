@@ -1,7 +1,11 @@
 <?php
 
-use App\Http\Controllers\Bot\StarterController;
+use App\Bot\Commands\StartCommand;
+use App\Bot\Menus\HowToUseMenu;
+use App\Bot\Menus\ProfileMenu;
+use App\Bot\Menus\SubscribeMenu;
 use App\Http\Middleware\GlobalBotMiddleware;
+use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
 
 /*
@@ -14,12 +18,26 @@ use SergiX44\Nutgram\Nutgram;
 |
 */
 
+// On Every Message run start command
+$bot->onMessage(StartCommand::class);
+
 // Global Middleware - (Check User Join in channel Or Not)
 $bot->middleware(GlobalBotMiddleware::class);
 
 // Starter Message Handler
-$bot->onCommand('start', StarterController::class);
-$bot->onCallbackQueryData('bot:restart', StarterController::class);
+$bot->onCommand('start', StartCommand::class);
+$bot->onCallbackQueryData('restart', StartCommand::class);
 
 // User Subscribe
-$bot->onText('خرید اشتراک 💳', SubscribeController::class);
+$bot->onText('خرید اشتراک 💳', SubscribeMenu::class);
+$bot->onCallbackQueryData('buy_subscription', SubscribeMenu::class);
+$bot->onCallbackQueryData('renewal', SubscribeMenu::class);
+
+// User Profile
+$bot->onText('اشتراک من 👤', ProfileMenu::class);
+$bot->onCallbackQueryData('profile', ProfileMenu::class);
+
+// Learn More
+$bot->onText('آموزش ها 📚', HowToUseMenu::class);
+$bot->onCallbackQueryData('howtouse', HowToUseMenu::class);
+$bot->onCallbackQueryData('howtouse:main', HowToUseMenu::class);
