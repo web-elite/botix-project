@@ -151,7 +151,7 @@ return [
 
         'xui-api'    => [
             'driver'         => 'daily',
-            'path'           => storage_path('logs/services/xui-api.log'),
+            'path'           => storage_path('logs/services/xui/xui-api.log'),
             'level'          => 'debug',
             'days'           => 7,
             'formatter'      => \Monolog\Formatter\LineFormatter::class,
@@ -164,7 +164,7 @@ return [
 
         'gateways'   => [
             'driver'         => 'daily',
-            'path'           => storage_path('logs/services/gateways.log'),
+            'path'           => storage_path('logs/services/gateways/gateways.log'),
             'level'          => 'debug',
             'days'           => 7,
             'formatter'      => \Monolog\Formatter\LineFormatter::class,
