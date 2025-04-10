@@ -2,7 +2,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Services\xui\XUIApiService;
 use App\Services\xui\XUIDataService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -13,8 +12,7 @@ class UserSyncService
     public function syncXuiUsers(): void
     {
         try {
-            $xuiApiService  = new XUIApiService;
-            $xuiDataService = new XUIDataService($xuiApiService);
+            $xuiDataService = app(XUIDataService::class);
 
             $groupedClients = $xuiDataService->getUsersData();
 
