@@ -14,6 +14,8 @@ class HowToUseMenu extends InlineMenu
 
     public function start(Nutgram $bot)
     {
+        $bot->sendMessage(".\n😬🙄 هنوز این بخش درحال بروزرسانی");
+        return;
         $this->clearButtons();
 
         $this->menuText($message, ['parse_mode' => ParseMode::MARKDOWN])
