@@ -16,7 +16,7 @@ class ZibalService
         $this->merchantId = env('ZIBAL_MERCHANT_KEY');
     }
 
-    public function createPaymentLink(int $amount, int $mobile = null, ?string $callbackUrl = null): string
+    public function createPaymentLink(int $amount, int $mobile = null, ?string $callbackUrl = null): array
     {
         try {
             $callbackUrl = $callbackUrl ?? 'https://bya2game.ir/thanks';
@@ -31,7 +31,10 @@ class ZibalService
 
             if ($response && isset($response['trackId'])) {
                 $this->trackId = $response['trackId'];
-                return "https://gateway.zibal.ir/start/" . $this->trackId;
+                return [
+                    'url'      => 'https://gateway.zibal.ir/start/' . $this->trackId,
+                    'ref_id' => $response['trackId'],
+                ];
             }
 
         } catch (Throwable $e) {
@@ -44,7 +47,7 @@ class ZibalService
             ]);
         }
 
-        return false;
+        return [];
     }
 
     public function sendToZibal(array $paymentData)
