@@ -1,8 +1,6 @@
 <?php
-
 namespace App\Services\xui;
 
-use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -141,4 +139,41 @@ class XUIApiService
     {
         return $this->request('GET', '/panel/api/inbounds/createbackup');
     }
+
+    // دریافت اطلاعات کلی سیستم
+    public function getSystemInfo()
+    {
+        return $this->request('GET', '/panel/api/system/info');
+    }
+
+    // دریافت کاربران غیرفعال‌شده
+    public function getDeactivatedUsers()
+    {
+        return $this->request('GET', '/panel/api/inbounds/getDeactivatedUsers');
+    }
+
+    // ویرایش تنظیمات یک inbound
+    public function updateInbound($data)
+    {
+        return $this->request('POST', '/panel/api/inbounds/update', $data);
+    }
+
+    // ویرایش اطلاعات یک کلاینت
+    public function updateClient($data,$uuid)
+    {
+        return $this->request('POST', "/panel/api/inbounds/updateClient/{$uuid}", $data);
+    }
+
+    // تغییر وضعیت فعال/غیرفعال یک inbound
+    public function toggleInbound($id)
+    {
+        return $this->request('POST', "/panel/api/inbounds/toggle/{$id}");
+    }
+
+    // دریافت لیست کاربران آنلاین (کلاینت‌هایی که آنلاین هستند)
+    public function getOnlineClients()
+    {
+        return $this->request('POST', '/onlines');
+    }
+
 }
