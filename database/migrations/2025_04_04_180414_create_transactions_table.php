@@ -16,6 +16,7 @@ return new class extends Migration {
 
             // اطلاعات پرداخت
             $table->unsignedBigInteger('amount'); // به ریال
+            $table->string('user_subscription_id')->default('new'); // مثلاً zibal، nextpay، ...
             $table->string('gateway')->default('zibal'); // مثلاً zibal، nextpay، ...
             $table->string('ref_id')->nullable(); // trackId از درگاه
             $table->string('ref_number')->nullable(); // شماره مرجع درگاه
