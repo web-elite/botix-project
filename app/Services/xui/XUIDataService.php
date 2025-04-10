@@ -1,6 +1,8 @@
 <?php
 namespace App\Services\xui;
 
+use App\Models\SubscriptionPlan;
+use App\Models\Transactions;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -153,4 +155,170 @@ class XUIDataService
     {
         return optional(json_decode($json, true))[$key] ?? $default;
     }
+
+    /**
+     * Get client inbound ID by subscription ID and Telegram ID.
+     *
+     * @param string $subId
+     * @param int $tgId
+     * @return int|null
+     */
+    public function getClientInboundId($subId, $tgId): ?int
+    {
+        $inbounds = $this->api->getInbounds();
+
+        foreach ($inbounds as $inbound) {
+            $clients = $this->parseJson($inbound['settings'] ?? '', 'clients', []);
+
+            foreach ($clients as $client) {
+                if ($client['tgId'] == $tgId && $client['subId'] === $subId) {
+                    return (int) $inbound['id'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all inbound IDs.
+     *
+     * @return array
+     */
+    public function getAllInboundsId(): array
+    {
+        $excludedIds = [27, 29];
+
+        $inbounds = $this->api->getInbounds();
+
+        $filtered = array_filter($inbounds, fn($inbound) => ! in_array((int) $inbound['id'], $excludedIds));
+
+        return array_map(fn($inbound) => (int) $inbound['id'], $filtered);
+    }
+
+    /**
+     * Update client data after purchase.
+     *
+     * @param Transactions $transaction
+     * @return bool
+     */
+    public function updateClientAfterPurchase(Transactions $transaction): bool
+    {
+        try {
+            $plan   = SubscriptionPlan::find($transaction->subscription_plan_id);
+            $user   = User::find($transaction->user_id);
+            $xui    = app(XUIApiService::class);
+            $subKey = $transaction->user_subscription_id;
+
+            $inboundIds = $this->getAllInboundsId();
+
+            if ($subKey === 'new') {
+                return $this->createNewClient($user, $plan, $inboundIds);
+            }
+
+            $meta = $user->meta['xui_data'][$subKey] ?? null;
+
+            // اگر subKey وجود نداشت، یعنی اشتراک واقعی نداشته ولی پرداخت کرده → کلاینت جدید بساز
+            if (! $meta) {
+                Log::channel('xui-api')->warning("subKey not found, creating new client instead", ['user_id' => $user->id, 'subKey' => $subKey]);
+                return $this->createNewClient($user, $plan, $inboundIds);
+            }
+
+            return $this->updateExistingClient($user, $plan, $inboundIds, $meta, $subKey);
+
+        } catch (\Throwable $e) {
+            Log::channel('xui-api')->error("❌ Error in updateClientAfterPurchase", [
+                'transaction_id' => $transaction->id,
+                'user_id'        => $transaction->user_id,
+                'sub_key'        => $transaction->user_subscription_id,
+                'error'          => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Create a new client in XUI.
+     *
+     * @param User $user
+     * @param SubscriptionPlan $plan
+     * @param array $inboundIds
+     * @return bool
+     */
+    protected function createNewClient(User $user, SubscriptionPlan $plan, array $inboundIds): bool
+    {
+        $uuid       = Str::uuid()->toString();
+        $subId      = Str::random(16);
+        $expiryTime = now()->addMonths($plan->duration)->timestamp * 1000;
+
+        $clientData = $this->buildClientData($uuid, $subId, $user, $plan, $expiryTime, 0, '');
+
+        foreach ($inboundIds as $inboundId) {
+            app(XUIApiService::class)->addClient($inboundId, $clientData);
+        }
+
+        return true;
+    }
+
+    /**
+     * Update existing client data.
+     *
+     * @param User $user
+     * @param SubscriptionPlan $plan
+     * @param array $inboundIds
+     * @param array $meta
+     * @param string $subKey
+     * @return bool
+     */
+    protected function updateExistingClient(User $user, SubscriptionPlan $plan, array $inboundIds, array $meta, string $subKey): bool
+    {
+        $nowMs    = now()->timestamp * 1000;
+        $baseTime = $meta['time_limit'] > $nowMs ? $meta['time_limit'] : $nowMs;
+        $expiry   = Carbon::createFromTimestampMs($baseTime)->addMonths($plan->duration)->timestamp * 1000;
+
+        $clientData = $this->buildClientData(
+            $meta['id'],
+            $subKey,
+            $user,
+            $plan,
+            $expiry,
+            $meta['limitIp'] ?? 1,
+            $meta['flow'] ?? ''
+        );
+
+        foreach ($inboundIds as $inboundId) {
+            app(XUIApiService::class)->addClient($inboundId, $clientData);
+        }
+
+        return true;
+    }
+
+    /**
+     * Build client data for XUI API.
+     *
+     * @param string $uuid
+     * @param string $subId
+     * @param User $user
+     * @param SubscriptionPlan $plan
+     * @param int $expiry
+     * @param int $limitIp
+     * @param string $flow
+     * @return array
+     */
+    protected function buildClientData(string $uuid, string $subId, User $user, SubscriptionPlan $plan, int $expiry, int $limitIp, string $flow): array
+    {
+        return [
+            'id'         => $uuid,
+            'flow'       => $flow,
+            'email'      => $user->id,
+            'limitIp'    => $limitIp,
+            'totalGB'    => $plan->total_gb * 1024 * 1024 * 1024,
+            'expiryTime' => $expiry,
+            'enable'     => true,
+            'tgId'       => $user->tg_id ?? '',
+            'subId'      => $subId,
+            'reset'      => 0,
+        ];
+    }
+
 }
