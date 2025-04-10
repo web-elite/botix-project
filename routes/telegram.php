@@ -1,5 +1,6 @@
 <?php
 
+use SergiX44\Nutgram\StartConversation;
 use App\Bot\Commands\StartCommand;
 use App\Bot\Menus\HowToUseMenu;
 use App\Bot\Menus\ProfileMenu;
@@ -17,6 +18,12 @@ use SergiX44\Nutgram\Nutgram;
 | handlers are loaded by the NutgramServiceProvider. Enjoy!
 |
 */
+
+// StartConversation::begin(
+//     bot: $bot,
+//     userId: '902019456',
+//     chatId: '902019456'
+// );
 
 // On Every Message run start command
 $bot->onMessage(StartCommand::class);
