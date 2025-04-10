@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Controllers\FrontController;
-use App\Http\Controllers\PaymentController;
+use App\Models\User;
+use App\Services\xui\XUIApiService;
+use App\Services\xui\XUIDataService;
 use Illuminate\Support\Facades\Route;
 Route::post('/webhook', [FrontController::class, '__invoke']);
-Route::post('/payment/callback', [PaymentController::class, 'paymentCallback']);
 
 Route::get('/', function () {
-    return view('welcome');
+    $xui = new XUIApiService;
+    $xuiData = new XUIDataService($xui);
+    $user =  User::find(1);
+    dd($user);
 });
