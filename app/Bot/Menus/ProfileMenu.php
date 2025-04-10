@@ -1,10 +1,7 @@
 <?php
-
 namespace App\Bot\Menus;
 
-use App\Models\User;
 use App\Services\UserService;
-use Pest\Plugins\Retry;
 use SergiX44\Nutgram\Conversations\InlineMenu;
 use SergiX44\Nutgram\Nutgram;
 use SergiX44\Nutgram\Telegram\Properties\ParseMode;
@@ -24,15 +21,16 @@ class ProfileMenu extends InlineMenu
         $this->clearButtons();
         show_loading_bot($bot);
 
-        $userService = new UserService;
+        $userService   = new UserService;
         $subscriptions = $userService->getUserXuiData($bot->chatId());
-        $subCount = count($subscriptions);
+        $subCount      = count($subscriptions);
 
         if ($subCount === 0) {
             $message = "❌ اشتراکی برای شما پیدا نشد.";
-            $this->menuText($message, ['parse_mode' => ParseMode::MARKDOWN])
-                ->addButtonRow(InlineKeyboardButton::make('🛒 خرید اشتراک 🛒', callback_data: "buy_subscription@handle"))
+            $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
+                ->addButtonRow(InlineKeyboardButton::make('🛒 خرید اشتراک 🛒', callback_data: "buy_subscription"))
                 ->orNext('cancel')->showMenu();
+            hide_loading_bot($bot);
             return;
         }
 
@@ -45,7 +43,7 @@ class ProfileMenu extends InlineMenu
         hide_loading_bot($bot);
 
         $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
-            // ->addButtonRow(InlineKeyboardButton::make('❄️ غیرفعالسازی موقت اشتراک ❄️', callback_data: "pause@handle"))
+        // ->addButtonRow(InlineKeyboardButton::make('❄️ غیرفعالسازی موقت اشتراک ❄️', callback_data: "pause"))
             ->addButtonRow(InlineKeyboardButton::make('✅ تمدید اشتراک ✅', callback_data: "renewal"))
             ->addButtonRow(InlineKeyboardButton::make('📚 آموزش نحوه استفاده 🎥', callback_data: "howtouse"))
             ->orNext('cancel')->showMenu();
