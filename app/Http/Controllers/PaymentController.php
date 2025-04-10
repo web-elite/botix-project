@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -21,6 +22,11 @@ class PaymentController extends Controller
 
         $result = (new PaymentService)->confirmTransaction($validated['trackId']);
 
+        Log::info('Payment callback received', [
+            'headers' => $request->headers->all(),
+            'body'    => $request->all(),
+            'validated' => $validated
+        ]);
         return response()->json([
             'success' => $result,
         ]);
