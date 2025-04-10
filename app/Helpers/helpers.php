@@ -2,7 +2,7 @@
 
 use SergiX44\Nutgram\Nutgram;
 
-if (!function_exists('escape_markdown')) {
+if (! function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
         $characters = ['[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
@@ -13,7 +13,7 @@ if (!function_exists('escape_markdown')) {
     }
 }
 
-if (!function_exists('format_bytes')) {
+if (! function_exists('format_bytes')) {
     function format_bytes(int $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -28,7 +28,7 @@ if (!function_exists('format_bytes')) {
     }
 }
 
-if (!function_exists('show_loading_bot')) {
+if (! function_exists('show_loading_bot')) {
     function show_loading_bot(Nutgram $bot, ?string $text = null): void
     {
         try {
@@ -48,12 +48,17 @@ if (!function_exists('show_loading_bot')) {
             $bot->setUserData('loading_message_id', $msg->message_id, $chatId);
             $bot->setUserData('loading_sticker_id', $sticker->message_id, $chatId);
         } catch (Exception $e) {
-            Log::channel('bot')->error("Unexpected error in show_loading_bot: " . $e->getMessage());
+            if (str_contains($e->getMessage(), 'bot was blocked by the user')) {
+                Log::channel('bot')->warning("User blocked the bot", ['chat_id' => $chatId]);
+            } else {
+                Log::channel('bot')->error("Unexpected error in show_loading_bot: " . $e->getMessage(), ['chat_id' => $chatId]);
+            }
         }
+
     }
 }
 
-if (!function_exists('hide_loading_bot')) {
+if (! function_exists('hide_loading_bot')) {
     function hide_loading_bot(Nutgram $bot): void
     {
         try {
@@ -75,14 +80,14 @@ if (!function_exists('hide_loading_bot')) {
     }
 }
 
-if (!function_exists('bytes_to_gb')) {
+if (! function_exists('bytes_to_gb')) {
     function bytes_to_gb($bytes)
     {
         return number_format($bytes / (1024 ** 3), 2);
     }
 }
 
-if (!function_exists('calculate_time_left')) {
+if (! function_exists('calculate_time_left')) {
     function calculate_time_left($timeLimit)
     {
         $timeLimitSec = intval($timeLimit / 1000);
@@ -99,7 +104,7 @@ if (!function_exists('calculate_time_left')) {
     }
 }
 
-if (!function_exists('get_admin_ids')) {
+if (! function_exists('get_admin_ids')) {
     function get_admin_ids(): array
     {
         return array_map(
@@ -115,7 +120,7 @@ if (!function_exists('get_admin_ids')) {
  * @param int $chatId
  * @return bool
  */
-if (!function_exists('this_id_is_admin')) {
+if (! function_exists('this_id_is_admin')) {
     function this_id_is_admin(int $chatId): bool
     {
         return in_array($chatId, get_admin_ids(), true);
