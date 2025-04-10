@@ -14,6 +14,7 @@ class Transactions extends Model
     protected $fillable = [
         'user_id',
         'subscription_plan_id',
+        'user_subscription_id',
         'amount',
         'gateway',
         'ref_id',
@@ -27,6 +28,11 @@ class Transactions extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function subscriptionPlan()
+    {
+        return $this->belongsTo(SubscriptionPlan::class);
     }
 
 }
