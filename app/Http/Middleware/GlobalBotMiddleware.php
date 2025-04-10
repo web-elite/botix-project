@@ -125,7 +125,7 @@ class GlobalBotMiddleware
     protected function logNonMemberAttempt(object $chatMemberInfo, int $chatId, string $joinStatus): void
     {
         $username = $chatMemberInfo->user->username ?? 'Unknown';
-        Log::channel('bot')->info("http://t.me/{$username} ($chatId) attempted to use the bot but join status is: $joinStatus");
+        // Log::channel('bot')->info("http://t.me/{$username} ($chatId) attempted to use the bot but join status is: $joinStatus");
     }
 
     /**
