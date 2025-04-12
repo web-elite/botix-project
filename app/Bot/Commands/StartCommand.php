@@ -49,8 +49,12 @@ class StartCommand
     {
         return ReplyKeyboardMarkup::make()
             ->addRow(
-                KeyboardButton::make('خرید اشتراک 💳'),
-                KeyboardButton::make('اشتراک من 👤'),
+                KeyboardButton::make('خرید یا تمدید اشتراک 💳'),
+                KeyboardButton::make('اشتراک‌های من 👤'),
+            )
+            ->addRow(
+                KeyboardButton::make('دریافت اشتراک تستی 🎁'),
+                // KeyboardButton::make('دریافت کد تخفیف 🎟️'),
             )
             ->addRow(
                 // KeyboardButton::make('دعوت دوستان 🔗'),
