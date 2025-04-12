@@ -175,9 +175,8 @@ class SubscribeMenu extends InlineMenu
             return;
         }
 
-        $user = User::where('tg_id',$bot->userId())->first();
-        $subId = $bot->setUserData('selected_plan_id', $this->get_selected_plan($bot)->id, $bot->chatId());
-
+        $user  = User::where('tg_id', $bot->userId())->first();
+        $subId = $bot->getUserData('selected_sub_id', $bot->chatId());
         $payment->createOrder(
             userId: $user->id,
             userSubId: $subId,
