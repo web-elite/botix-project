@@ -96,8 +96,9 @@ class SubscribeMenu extends InlineMenu
     {
         try {
             foreach ($userSubs as $subId => $subInfo) {
+                $name = get_clean_name($subInfo['name']);
                 $this->addButtonRow(
-                    InlineKeyboardButton::make("📶 {$subInfo['name']}", callback_data: "{$subId}@select_subscription")
+                    InlineKeyboardButton::make("📶 {$name}", callback_data: "{$subId}@select_subscription")
                 );
             }
 

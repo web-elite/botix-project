@@ -104,6 +104,18 @@ if (! function_exists('calculate_time_left')) {
     }
 }
 
+if (! function_exists('get_clean_name')) {
+    function get_clean_name($name): string
+    {
+        $planName = $name;
+        if (preg_match('/\(\(\((.*?)\)\)\)/', $planName, $matches)) {
+            $extractedString = $matches[1];
+            $planName        = $extractedString;
+        }
+        return $planName;
+    }
+}
+
 if (! function_exists('get_admin_ids')) {
     function get_admin_ids(): array
     {
