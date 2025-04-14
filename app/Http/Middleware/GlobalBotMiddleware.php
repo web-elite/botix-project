@@ -57,7 +57,7 @@ class GlobalBotMiddleware
     protected function saveUserInfo(Nutgram $bot): void
     {
         $userData = $bot->user();
-        $usersync = new UserSyncService;
+        $usersync = app(UserSyncService::class);
         $usersync->syncTelegramUser($userData);
     }
 

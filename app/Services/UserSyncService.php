@@ -9,12 +9,25 @@ use Illuminate\Support\Str;
 
 class UserSyncService
 {
+    /**
+     * @var XUIDataService
+     */
+    private XUIDataService $xuiDataService;
+
+    public function __construct(XUIDataService $xuiDataService)
+    {
+        $this->xuiDataService = $xuiDataService;
+    }
+
+    /**
+     * Sync XUI users with the database.
+     *
+     * @return void
+     */
     public function syncXuiUsers(): void
     {
         try {
-            $xuiDataService = app(XUIDataService::class);
-
-            $groupedClients = $xuiDataService->getUsersData();
+            $groupedClients = $this->xuiDataService->getUsersData();
 
             collect($groupedClients)
                 ->map(function ($client, $tgId) {

@@ -14,7 +14,7 @@ class UserService
      */
     public function getUserXuiData(string $tgId): array
     {
-        (new UserSyncService)->syncXuiUsers();
+        app(UserSyncService::class)->syncXuiUsers();
 
         $user = User::where('tg_id', $tgId)->first();
 
