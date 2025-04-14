@@ -14,80 +14,30 @@ use SergiX44\Nutgram\Telegram\Types\Keyboard\InlineKeyboardButton;
 class SubscribeMenu extends InlineMenu
 {
     /**
-     * !Step 1 - Show the subscription plans.
+     * !Step 1 - Show the user's subscriptions.
      * @param Nutgram $bot
      * @return void
      */
     public function start(Nutgram $bot)
     {
         try {
-            $plans = SubscriptionPlan::active()->get();
-
-            $this->clearButtons();
-            $this->menuText(escape_markdown($this->text()), ['parse_mode' => ParseMode::MARKDOWN]);
-
-            foreach ($plans as $plan) {
-                $label = $plan->name . ' - ' . number_format($plan->amount / 1000) . ' تومان 💰';
-                $this->addButtonRow(
-                    InlineKeyboardButton::make($label, callback_data: $plan->slug . '@select_plan')
-                );
-            }
-
-            $this->showMenu();
-
-        } catch (\Throwable $th) {
-            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on show_plans method: " . $th->getMessage());
-        }
-    }
-
-    /**
-     * !Step 2 - User selects a plan.
-     * @param Nutgram $bot
-     * @return void
-     */
-    public function select_plan(Nutgram $bot)
-    {
-        try {
-            $planSlug = $bot->callbackQuery()->data;
-            $plan     = SubscriptionPlan::where('slug', $planSlug)->first();
-
-            if (! $plan) {
-                $bot->sendMessage("⛔️ پلن انتخاب‌شده نامعتبر است.");
-                return;
-            }
-
-            $bot->setUserData('selected_plan_id', $plan->id, $bot->chatId());
-            $this->show_user_subscription($bot);
-
-        } catch (\Throwable $th) {
-            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_plan method: " . $th->getMessage());
-        }
-    }
-
-    /**
-     * !Step 3 - Show the user's subscriptions.
-     * @param Nutgram $bot
-     * @return void
-     */
-    private function show_user_subscription(Nutgram $bot)
-    {
-        try {
             $userService = new UserService;
             $userSubs    = $userService->getUserXuiData($bot->userId());
+
             if (count($userSubs) > 0) {
-                $this->clearButtons()->menuText("📌 انتخاب کنید برای کدام اشتراک می‌خواهید این پلن را بخرید:");
+                $this->clearButtons()->menuText("📌 لطفا اشتراک خود را برای تمدید انتخاب کنید.\n\n ➕ همچنین اگر قصد خرید اشتراک جدید دارید گزینه (خرید اشتراک جدید) را انتخاب کنید.");
                 $this->show_user_subscriptions($userSubs);
-                return;
             } else {
                 $this->select_subscription($bot);
             }
+
         } catch (\Throwable $th) {
-            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on show_subscriptions method: " . $th->getMessage());
+            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on start method: " . $th->getMessage());
         }
     }
 
     /**
-     * !Step 3 (if user have sub) - Show the user's subscriptions.
+     * !Step 1 (if user have sub) - Show the user's subscriptions.
      *
      * @param array $userSubs
      * @return void
@@ -112,7 +62,7 @@ class SubscribeMenu extends InlineMenu
     }
 
     /**
-     * !Step 4 - User selects a subscription.
+     * !Step 2 - User selects a subscription.
      * @param Nutgram $bot
      * @return void
      */
@@ -128,10 +78,64 @@ class SubscribeMenu extends InlineMenu
             }
 
             $bot->setUserData('selected_sub_id', $subId, $bot->chatId());
-            $this->show_checkout($bot, $msg);
+            $this->show_plans($bot, $msg);
 
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_subscription method: " . $th->getMessage());
+        }
+    }
+
+    /**
+     * !Step 3 - Show the subscription plans.
+     * @param Nutgram $bot
+     * @return void
+     */
+    private function show_plans(Nutgram $bot, string $header = '')
+    {
+        try {
+            $plans = SubscriptionPlan::active()->get();
+
+            $this->clearButtons();
+
+            $text = $header . "\n\n💡 لطفاً یکی از پلن‌های زیر را انتخاب کنید:";
+            $this->menuText(escape_markdown($text), ['parse_mode' => ParseMode::MARKDOWN]);
+
+            foreach ($plans as $plan) {
+                $label = $plan->name . ' - ' . number_format($plan->amount / 1000) . ' تومان 💰';
+                $this->addButtonRow(
+                    InlineKeyboardButton::make($label, callback_data: $plan->slug . '@select_plan')
+                );
+            }
+
+            $this->addButtonRow(InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'back@start'))
+                ->showMenu();
+
+        } catch (\Throwable $th) {
+            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on show_plans method: " . $th->getMessage());
+        }
+    }
+
+    /**
+     * !Step 3 - User selects a plan.
+     * @param Nutgram $bot
+     * @return void
+     */
+    public function select_plan(Nutgram $bot)
+    {
+        try {
+            $planSlug = $bot->callbackQuery()->data;
+            $plan     = SubscriptionPlan::where('slug', $planSlug)->first();
+
+            if (! $plan) {
+                $bot->sendMessage("⛔️ پلن انتخاب‌شده نامعتبر است.");
+                return;
+            }
+
+            $bot->setUserData('selected_plan_id', $plan->id, $bot->chatId());
+            $this->show_checkout($bot, $msg);
+
+        } catch (\Throwable $th) {
+            Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_plan method: " . $th->getMessage());
         }
     }
 
