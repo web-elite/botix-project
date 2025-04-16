@@ -70,7 +70,7 @@ class GlobalBotMiddleware
     protected function checkUserIsMember(Nutgram $bot): bool
     {
         try {
-            $chatId   = $bot->chatId();
+            $chatId = $bot->chatId();
 
             if (this_id_is_admin($chatId)) {
                 return true;
@@ -79,7 +79,7 @@ class GlobalBotMiddleware
 
             $chatMemberInfo = $bot->getChatMember($channelUsername, $chatId);
             $joinStatus     = $chatMemberInfo->status->value;
-            if (in_array($joinStatus,['member','administrator','creator'])) {
+            if (in_array($joinStatus, ['member', 'administrator', 'creator'])) {
                 $this->deleteJoinMessage($bot, $chatId);
                 return true;
             }
