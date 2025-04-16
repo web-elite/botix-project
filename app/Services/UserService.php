@@ -6,19 +6,40 @@ use App\Services\UserSyncService;
 
 class UserService
 {
+    public function __construct(UserSyncService $userSyncService)
+    {
+        $this->syncService = $userSyncService;
+    }
+
     /**
      * Retrieve synced XUI user data by Telegram ID.
      *
      * @param string $tgId
+     * @param string $type - all | active | subscription ID
      * @return array
      */
-    public function getUserXuiData(string $tgId): array
+    public function getUserXuiData(string $tgId, string $type = 'all'): array
     {
-        app(UserSyncService::class)->syncXuiUsers();
+        $this->syncService->syncXuiUsers();
+        $user    = User::where('tg_id', $tgId)->first();
+        $xuiData = $user->xui_data ?? [];
 
-        $user = User::where('tg_id', $tgId)->first();
+        if ($type === 'all') {
+            return $xuiData;
+        }
 
-        return $user->meta['xui_data'] ?? [];
+        if ($type === 'active') {
+            return collect($xuiData)->filter(function ($sub) {
+                $timeLimit    = $sub['time_limit'] ?? 0;
+                $hasTimeLimit = $timeLimit > 0;
+                $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
+                $userStatus   = $sub['status'] ?? null;
+
+                return ! in_array($userStatus, ['suspended', 'canceled', 'deleted']) && ! ($hasTimeLimit && $isExpired);
+            })->toArray();
+        }
+
+        return $xuiData[$type] ?? [];
     }
 
     /**
@@ -66,7 +87,7 @@ class UserService
             default => $statusMap['active'],
         };
 
-        $planName     = $data['name'] ?? 'نامشخص';
+        $planName     = get_clean_name($data['name']) ?? 'نامشخص';
         $uploadGB     = bytes_to_gb($data['upload'] ?? 0);
         $downloadGB   = bytes_to_gb($data['download'] ?? 0);
         $totalGBVal   = $data['totalGB'] ?? 0;
@@ -75,16 +96,18 @@ class UserService
 
         // Time left or expiry
         if ($hasTimeLimit) {
-            $expiryDate = date("Y-m-d H:i:s", $timeLimit / 1000);
-
-            $timeLeft = $isExpired
-            ? ''
-            : sprintf(
+            $expiryDate      = date("Y-m-d H:i:s", $timeLimit / 1000);
+            $timeLeftDetails = calculate_time_left($timeLimit);
+            $timeLeft        = $isExpired ? '' : sprintf(
                 "(%d روز و %d ساعت و %d دقیقه دیگر باقی مانده)\n\n",
-                calculate_time_left($timeLimit)['days'],
-                calculate_time_left($timeLimit)['hours'],
-                calculate_time_left($timeLimit)['minutes']
+                $timeLeftDetails['days'],
+                $timeLeftDetails['hours'],
+                $timeLeftDetails['minutes']
             );
+
+            if ($timeLeftDetails['days'] <= 3 && $timeLeftDetails['minutes'] >= 1) {
+                $status .= " - ⚠️ در حال انقضا";
+            }
         } else {
             $expiryDate = 'نامحدود';
             $timeLeft   = "\n\n";
