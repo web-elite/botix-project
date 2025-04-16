@@ -11,6 +11,10 @@ class PaymentController extends Controller
     public function paymentCallback(Request $request): JsonResponse
     {
         if ($request->header('X-SECRET-KEY') !== env('WORDPRESS_SECRET_KEY')) {
+            Log::error('Unauthorized access attempt', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->header('User-Agent'),
+            ]);
             abort(403, 'Unauthorized');
         }
 
@@ -22,11 +26,6 @@ class PaymentController extends Controller
 
         $result = (new PaymentService)->confirmTransaction($validated['trackId']);
 
-        Log::info('Payment callback received', [
-            'headers' => $request->headers->all(),
-            'body'    => $request->all(),
-            'validated' => $validated
-        ]);
         return response()->json([
             'success' => $result,
         ]);

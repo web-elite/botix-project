@@ -38,7 +38,7 @@ class ZibalService
             }
 
         } catch (Throwable $e) {
-            Log::channel('gateways')->error("Zibal Error in {$context}:", [
+            Log::channel('payments')->error("Zibal Error in {$context}:", [
                 'error_message' => $e->getMessage(),
                 'file'          => $e->getFile(),
                 'line'          => $e->getLine(),
@@ -65,7 +65,7 @@ class ZibalService
 
             return $responseData;
         } catch (\Exception $e) {
-            Log::channel('gateways')->error('Zibal Payment Error:', [
+            Log::channel('payments')->error('Zibal Payment Error:', [
                 'error'   => $e->getMessage(),
                 'request' => $paymentData,
             ]);
@@ -92,7 +92,7 @@ class ZibalService
 
             $responseData = json_decode($response->getBody(), true);
 
-            Log::channel('gateways')->info('Zibal Verify:', [
+            Log::channel('payments')->info('Zibal Verify:', [
                 'request'  => $data,
                 'response' => $responseData,
             ]);
@@ -104,7 +104,7 @@ class ZibalService
             return null;
 
         } catch (\Exception $e) {
-            Log::channel('gateways')->error('Zibal Verify Error:', [
+            Log::channel('payments')->error('Zibal Verify Error:', [
                 'error'   => $e->getMessage(),
                 'request' => $data,
             ]);
@@ -131,7 +131,7 @@ class ZibalService
 
             $responseData = json_decode($response->getBody(), true);
 
-            Log::channel('gateways')->info('Zibal Inquiry:', [
+            Log::channel('payments')->info('Zibal Inquiry:', [
                 'request'  => $data,
                 'response' => $responseData,
             ]);
@@ -143,7 +143,7 @@ class ZibalService
             return null;
 
         } catch (\Exception $e) {
-            Log::channel('gateways')->error('Zibal Inquiry Error:', [
+            Log::channel('payments')->error('Zibal Inquiry Error:', [
                 'error'   => $e->getMessage(),
                 'request' => $data,
             ]);
