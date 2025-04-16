@@ -4,8 +4,10 @@ namespace App\Services\xui;
 use App\Models\SubscriptionPlan;
 use App\Models\Transactions;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class XUIDataService
 {
@@ -379,6 +381,129 @@ class XUIDataService
             'subId'      => $subId,
             'reset'      => 0,
         ];
+    }
+
+    /**
+     * Create a test client for a user.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function createTestClient(User $user): array
+    {
+        try {
+            $uuid       = Str::uuid()->toString();
+            $subId      = 'test-' . Str::random(10);
+            $expiryTime = now()->addDay()->timestamp * 1000; // 24 ساعت
+            $inboundIds = $this->getAllInboundsId();
+
+            foreach ($inboundIds as $inboundId) {
+                $clientData = [
+                    'id'         => $uuid,
+                    'flow'       => '',
+                    'email'      => substr($subId, -5) . '--' . $inboundId . "((({$user->name} - Test)))",
+                    'limitIp'    => 1,
+                    'totalGB'    => 5 * 1024 * 1024 * 1024, // 5 گیگ
+                    'expiryTime' => $expiryTime,
+                    'enable'     => true,
+                    'tgId'       => $user->tg_id ?? '',
+                    'subId'      => $subId,
+                    'reset'      => 0,
+                ];
+                $this->api->addClient($inboundId, $clientData);
+            }
+
+            return $clientData;
+        } catch (\Throwable $e) {
+            Log::channel('xui-api')->error('❌ Error in createTestClient', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+            return [
+                'status'  => false,
+                'message' => 'خطا در ایجاد اشتراک تستی',
+            ];
+        }
+    }
+
+    /**
+     * Clean email format.
+     */
+    private function parseEmailNameParts(string $email): array
+    {
+        // تمیز کردن برای اینکه مطمئن باشیم از چیزهای اضافی راحت شدیم
+        $email = trim($email);
+
+        $patterns = [
+            '/\d+--/', // Remove numbers followed by double hyphens (e.g., "4--")
+            '/\d+==/', // Remove numbers followed by double equals (e.g., "4==")
+            '/b--/',   // Remove literal "b--"
+        ];
+
+        $replacements = [
+            '', // For patterns 1-3
+            '',
+            '',
+        ];
+
+        $email = preg_replace($patterns, $replacements, $email);
+
+        // اگر ساختار چیزی مثل "AminAbdi-3user" باشه:
+        if (preg_match('/^(.*?)(?:-(\d+user))?$/', $email, $matches)) {
+            return [
+                'real_name'  => trim($matches[1]),
+                'user_count' => $matches[2] ?? null,
+            ];
+        }
+
+        // fallback:
+        return [
+            'real_name'  => $email,
+            'user_count' => null,
+        ];
+    }
+
+    /**
+     * Convert Client Email in XUI to New Structure
+     * convert this this -> AminMohammadi - 3user
+     * to this           -> 8ujwi--33(((AminMohammadi - 3user)))
+     */
+    public function convertEmailToNewStructure()
+    {
+        $inbounds = $this->api->getInbounds();
+        foreach ($inbounds as $inbound) {
+
+            $inboundId = $inbound['id'];
+
+            $settings = json_decode($inbound['settings'], true);
+
+            $clients = $settings['clients'] ?? [];
+            $stats   = &$inbound['clientStats'];
+
+            foreach ($clients as &$client) {
+                $oldEmail = $client['email'];
+
+                $parts       = $this->parseEmailNameParts($oldEmail);
+                $realName    = $parts['real_name'];
+                $users_count = $parts['user_count'];
+
+                $subId    = $client['subId'] ?? '';
+                $newEmail = substr($subId, -5) . '--' . $inboundId . "((({$realName}" . ($users_count ? " - {$users_count}" : '') . ")))";
+
+                $client['email'] = $newEmail;
+
+                foreach ($stats as &$stat) {
+                    if ($stat['email'] === $oldEmail) {
+                        $stat['email'] = $newEmail;
+                    }
+                }
+            }
+
+            $settings['clients'] = $clients;
+
+            $inbound['settings'] = json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $this->api->updateInbound($inbound, $inboundId);
+        }
     }
 
 }
