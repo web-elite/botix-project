@@ -46,11 +46,13 @@ class TestPlanMenu extends InlineMenu
         $user       = User::findByTgId($bot->chatId())->first();
         $clientData = $xui->createTestClient($user);
         if (isset($clientData['status'])) {
+            app(NotificationAdminHelperService::class)->sendTelegramNotification("ثبت اشتراک تستی جدید توسط کاربر @{$user->telegram_username} با خطا مواجه شد.");
             $this->menuText("❌ خطا در فعال‌سازی اشتراک تستی: " . $clientData['message'])
                 ->addButtonRow(InlineKeyboardButton::make('🔄 تلاش مجدد 🔄', callback_data: "test_plan"))
                 ->orNext('cancel')->showMenu();
             return;
         }
+        app(NotificationAdminHelperService::class)->sendTelegramNotification("اشتراک تستی جدید توسط کاربر @{$user->telegram_username} ثبت شد.");
         $message = "🎁 اشتراک تستی شما فعال شد! 🎁\n\n";
         $message .= "شما به مدت ۲۴ ساعت از سرویس‌های ما به صورت رایگان استفاده می‌کنید. 🚀✨\n\n";
         $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
