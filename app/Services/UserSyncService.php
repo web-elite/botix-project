@@ -34,7 +34,7 @@ class UserSyncService
                     try {
                         return $this->prepareXuiUserData($client, $tgId);
                     } catch (\Exception $e) {
-                        Log::error("Failed preparing XUI user data for tg_id: $tgId", [
+                        Log::channel('xui-api')->error("Failed preparing XUI user data for tg_id: $tgId", [
                             'error'  => $e->getMessage(),
                             'client' => $client,
                         ]);
@@ -54,7 +54,7 @@ class UserSyncService
                             $userData
                         );
                     } catch (\Exception $e) {
-                        Log::error("Failed syncing XUI user with tg_id: {$userData['tg_id']}", [
+                        Log::channel('xui-api')->error("Failed syncing XUI user with tg_id: {$userData['tg_id']}", [
                             'File:Line' => $e->getFile() . ':' . $e->getLine(),
                             'error'     => $e->getMessage(),
                             'userData'  => $userData,
@@ -63,7 +63,7 @@ class UserSyncService
                 });
 
         } catch (\Exception $e) {
-            Log::error('Failed syncing XUI users', [
+            Log::channel('xui-api')->error('Failed syncing XUI users', [
                 'File:Line' => $e->getFile() . ':' . $e->getLine(),
                 'error'     => $e->getMessage(),
                 'trace'     => $e->getTraceAsString(),
