@@ -53,7 +53,6 @@ class SubscribeMenu extends InlineMenu
             }
 
             $this->addButtonRow(InlineKeyboardButton::make("➕ خرید اشتراک جدید", callback_data: "new@select_subscription"))
-                ->addButtonRow(InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'back@start'))
                 ->orNext('cancel')
                 ->showMenu();
         } catch (\Throwable $th) {
@@ -224,5 +223,24 @@ class SubscribeMenu extends InlineMenu
             . "👨‍👩‍👧‍👦 حالت خانواده برای فیلتر کردن سایت‌های غیرمجاز\n"
             . "🔄 بروزرسانی خودکار فقط با یک کلیک\n\n"
             . "🌟 اشتراک دلخواهت رو انتخاب کن و وارد دنیای آزاد شو!";
+    }
+
+    protected function getSelectedSubInfoMsg(Nutgram $bot): string
+    {
+        $subId = $bot->getUserData('selected_sub_id', $bot->chatId());
+        if ($this->userSelectedSubIsNew($bot)) {
+            $msg = 'شما درحال خرید اشتراک جدید هستید.';
+        } else {
+            $userCount = $this->extractUserCount($bot);
+            $msg       = "شما درحال تمدید برای اشتراک با کد {$subId} هستید.\n این اشتراک $userCount کاربره است.";
+        }
+
+        return $msg;
+    }
+
+    private function userSelectedSubIsNew(Nutgram $bot)
+    {
+        $subId = $bot->getUserData('selected_sub_id', $bot->chatId());
+        return is_null($subId) or $subId === 'new' or str_contains($subId, 'sub_');
     }
 }
