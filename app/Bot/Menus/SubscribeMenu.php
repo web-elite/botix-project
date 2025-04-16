@@ -243,4 +243,26 @@ class SubscribeMenu extends InlineMenu
         $subId = $bot->getUserData('selected_sub_id', $bot->chatId());
         return is_null($subId) or $subId === 'new' or str_contains($subId, 'sub_');
     }
+
+    /**
+     * Extract the user count (count of user limited to connect) from the subscription ID.
+     *
+     * @param Nutgram $bot
+     * @return int
+     */
+    private function extractUserCount(Nutgram $bot): int
+    {
+        // مثال: "abc--xyz(((Ali - 2user)))"
+        $subId       = $bot->getUserData('selected_sub_id', $bot->chatId());
+        $userService = app(UserService::class);
+        $userSub     = $userService->getUserXuiData($bot->userId(), $subId);
+        Log::channel('bot')->info("User subscription data: ", $userSub);
+        if (preg_match('/(\d+)user/', $userSub['name'], $matches)) {
+            Log::channel('bot')->info("user count find : " . $matches[1]);
+
+            return (int) $matches[1];
+        }
+        return 1;
+    }
+
 }
