@@ -1,13 +1,12 @@
 <?php
 
-use SergiX44\Nutgram\StartConversation;
+use App\Bot\Commands\AboutCommand;
 use App\Bot\Commands\StartCommand;
 use App\Bot\Menus\HowToUseMenu;
 use App\Bot\Menus\ProfileMenu;
 use App\Bot\Menus\SubscribeMenu;
+use App\Bot\Menus\TestPlanMenu;
 use App\Http\Middleware\GlobalBotMiddleware;
-use Illuminate\Support\Facades\Log;
-use SergiX44\Nutgram\Nutgram;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,12 +17,6 @@ use SergiX44\Nutgram\Nutgram;
 | handlers are loaded by the NutgramServiceProvider. Enjoy!
 |
 */
-
-// StartConversation::begin(
-//     bot: $bot,
-//     userId: '902019456',
-//     chatId: '902019456'
-// );
 
 // On Every Message run start command
 $bot->onMessage(StartCommand::class);
@@ -36,12 +29,16 @@ $bot->onCommand('start', StartCommand::class);
 $bot->onCallbackQueryData('restart', StartCommand::class);
 
 // User Subscribe
-$bot->onText('خرید اشتراک 💳', SubscribeMenu::class);
+$bot->onText('خرید یا تمدید اشتراک 💳', SubscribeMenu::class);
 $bot->onCallbackQueryData('buy_subscription', SubscribeMenu::class);
 $bot->onCallbackQueryData('renewal', SubscribeMenu::class);
 
+// User Subscribe
+$bot->onText('دریافت اشتراک تستی 🎁', TestPlanMenu::class);
+$bot->onCallbackQueryData('test_plan', TestPlanMenu::class);
+
 // User Profile
-$bot->onText('اشتراک من 👤', ProfileMenu::class);
+$bot->onText('اشتراک‌های من 👤', ProfileMenu::class);
 $bot->onCallbackQueryData('profile', ProfileMenu::class);
 
 // Learn More
