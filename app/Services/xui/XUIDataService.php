@@ -190,10 +190,11 @@ class XUIDataService
             $inboundIds = $this->getAllInboundsId();
 
             if ($subKey === 'new') {
+                Log::channel('xui-api')->info("Creating new client for user", ['user_id' => $user->id, 'subKey' => $subKey]);
                 return $this->createNewClient($user, $plan, $inboundIds);
             }
 
-            $meta = $user->meta['xui_data'][$subKey] ?? null;
+            $meta = $user->xui_data[$subKey] ?? null;
 
             // اگر subKey وجود نداشت، یعنی اشتراک واقعی نداشته ولی پرداخت کرده → کلاینت جدید بساز
             if (! $meta) {
@@ -201,6 +202,11 @@ class XUIDataService
                 return $this->createNewClient($user, $plan, $inboundIds);
             }
 
+            Log::channel('xui-api')->info("Updating existing client", [
+                'user_id'        => $user->id,
+                'sub_key'        => $subKey,
+                'transaction_id' => $transaction->id,
+            ]);
             return $this->updateExistingClient($user, $plan, $inboundIds, $meta, $subKey);
 
         } catch (\Throwable $e) {
@@ -208,6 +214,7 @@ class XUIDataService
                 'transaction_id' => $transaction->id,
                 'user_id'        => $transaction->user_id,
                 'sub_key'        => $transaction->user_subscription_id,
+                'where'          => $e->getFile() . ':' . $e->getLine(),
                 'error'          => $e->getMessage(),
             ]);
             return false;
@@ -228,9 +235,8 @@ class XUIDataService
         $subId      = Str::random(16);
         $expiryTime = now()->addMonths($plan->duration)->timestamp * 1000;
 
-        $clientData = $this->buildClientData($uuid, $subId, $user, $plan, $expiryTime, 0, '');
-
         foreach ($inboundIds as $inboundId) {
+            $clientData = $this->buildNewClientData($uuid, $subId, $user, $plan, $expiryTime, 0, '', $inboundId);
             app(XUIApiService::class)->addClient($inboundId, $clientData);
         }
 
@@ -253,21 +259,98 @@ class XUIDataService
         $baseTime = $meta['time_limit'] > $nowMs ? $meta['time_limit'] : $nowMs;
         $expiry   = Carbon::createFromTimestampMs($baseTime)->addMonths($plan->duration)->timestamp * 1000;
 
-        $clientData = $this->buildClientData(
-            $meta['id'],
-            $subKey,
-            $user,
-            $plan,
-            $expiry,
-            $meta['limitIp'] ?? 1,
-            $meta['flow'] ?? ''
-        );
+        $xuiApi = app(XUIApiService::class);
 
         foreach ($inboundIds as $inboundId) {
-            app(XUIApiService::class)->addClient($inboundId, $clientData);
+            $uuid = $this->getClientUuidBySubId($subKey, $inboundId);
+
+            if (! $uuid) {
+                Log::channel('xui-api')->warning("UUID not found for subId", [
+                    'user_id'    => $user->id,
+                    'sub_key'    => $subKey,
+                    'inbound_id' => $inboundId,
+                ]);
+                continue;
+            }
+
+            $existingClient = $this->getClientByUuid($uuid, $inboundId);
+
+            if (! $existingClient) {
+                Log::channel('xui-api')->warning("Client not found for UUID", [
+                    'user_id'    => $user->id,
+                    'uuid'       => $uuid,
+                    'inbound_id' => $inboundId,
+                ]);
+                continue;
+            }
+
+            // فقط این فیلدها رو تغییر بده
+            $existingClient['expiryTime'] = $expiry;
+            $existingClient['totalGB']    = $plan->volume * 1024 * 1024 * 1024;
+
+            // حالا ارسال اطلاعات جدید
+            $xuiApi->updateClient($inboundId, $uuid, $existingClient);
         }
 
         return true;
+    }
+
+    /**
+     * Get client data by UUID and inbound ID.
+     *
+     * @param string $uuid
+     * @param int $inboundId
+     * @return array|null
+     */
+    public function getClientByUuid(string $uuid, int $inboundId): ?array
+    {
+        $inbounds = $this->api->getInbounds();
+
+        foreach ($inbounds as $inbound) {
+            if ($inbound['id'] !== $inboundId) {
+                continue;
+            }
+
+            $settings = json_decode($inbound['settings'] ?? '{}', true);
+            $clients  = $settings['clients'] ?? [];
+
+            foreach ($clients as $client) {
+                if (($client['id'] ?? null) === $uuid) {
+                    return $client;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get client UUID by subscription ID and inbound ID.
+     *
+     * @param string $subId
+     * @param int $inboundId
+     * @return string|null
+     */
+    public function getClientUuidBySubId(string $subId, int $inboundId): ?string
+    {
+        $inbounds = $this->api->getInbounds();
+
+        foreach ($inbounds as $inbound) {
+            if ($inbound['id'] !== $inboundId) {
+                continue;
+            }
+
+            $settings = json_decode($inbound['settings'] ?? '{}', true);
+            $clients  = $settings['clients'] ?? [];
+
+            foreach ($clients as $client) {
+                if (($client['subId'] ?? null) === $subId) {
+                    return $client['id']; // این همون uuid هست
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -282,12 +365,12 @@ class XUIDataService
      * @param string $flow
      * @return array
      */
-    protected function buildClientData(string $uuid, string $subId, User $user, SubscriptionPlan $plan, int $expiry, int $limitIp, string $flow): array
+    protected function buildNewClientData(string $uuid, string $subId, User $user, SubscriptionPlan $plan, int $expiry, int $limitIp, string $flow, int $inboundId): array
     {
         return [
             'id'         => $uuid,
             'flow'       => $flow,
-            'email'      => $user->id,
+            'email'      => substr($subId, -5) . '--' . $inboundId . "((({$user->name} - {$plan->users_count}user)))",
             'limitIp'    => $limitIp,
             'totalGB'    => $plan->total_gb * 1024 * 1024 * 1024,
             'expiryTime' => $expiry,
