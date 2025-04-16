@@ -69,15 +69,8 @@ class SubscribeMenu extends InlineMenu
     {
         try {
             $subId = $bot->callbackQuery()->data;
-
-            if (is_null($subId) or $subId == 'new' or str_contains($subId, 'sub_')) {
-                $msg = 'شما درحال خرید اشتراک جدید هستید.';
-            } else {
-                $msg = "شما درحال خرید برای اشتراک با کد {$subId} هستید.";
-            }
-
             $bot->setUserData('selected_sub_id', $subId, $bot->chatId());
-            $this->show_plans($bot, $msg);
+            $this->show_plans($bot);
 
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_subscription method: " . $th->getMessage());
@@ -89,15 +82,28 @@ class SubscribeMenu extends InlineMenu
      * @param Nutgram $bot
      * @return void
      */
-    private function show_plans(Nutgram $bot, string $header = '')
+    private function show_plans(Nutgram $bot)
     {
         try {
-            $plans = SubscriptionPlan::active()->get();
-
             $this->clearButtons();
+            $msg = $this->getSelectedSubInfoMsg($bot);
 
-            $text = $header . "\n\n💡 لطفاً یکی از پلن‌های زیر را انتخاب کنید:";
+            $subId = $bot->getUserData('selected_sub_id', $bot->chatId());
+            $text  = $msg . "\n\n💡 لطفاً یکی از پلن‌های زیر را انتخاب کنید:";
             $this->menuText(escape_markdown($text), ['parse_mode' => ParseMode::MARKDOWN]);
+
+            // پیش‌فرض: همه پلن‌ها
+            $plansQuery = SubscriptionPlan::active();
+
+            // اگر پلن جدید نیست، فیلتر براساس تعداد کاربر اعمال شود
+            if (! $this->userSelectedSubIsNew($bot)) {
+                $usersCount = $this->extractUserCount($bot ?? '');
+                if ($usersCount > 0) {
+                    $plansQuery->where('users_count', $usersCount);
+                }
+            }
+
+            $plans = $plansQuery->get();
 
             foreach ($plans as $plan) {
                 $label = $plan->name . ' - ' . number_format($plan->amount / 1000) . ' تومان 💰';
@@ -131,7 +137,7 @@ class SubscribeMenu extends InlineMenu
             }
 
             $bot->setUserData('selected_plan_id', $plan->id, $bot->chatId());
-            $this->show_checkout($bot, $msg);
+            $this->show_checkout($bot);
 
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_plan method: " . $th->getMessage());
@@ -145,9 +151,10 @@ class SubscribeMenu extends InlineMenu
      * @param string  $msg
      * @return void
      */
-    private function show_checkout(Nutgram $bot, string $msg)
+    private function show_checkout(Nutgram $bot)
     {
         try {
+            $msg     = $this->getSelectedSubInfoMsg($bot);
             $plan    = $this->get_selected_plan($bot);
             $gateway = $this->start_gateway($bot);
             $this->clearButtons()
@@ -168,7 +175,7 @@ class SubscribeMenu extends InlineMenu
 
     private function start_gateway(Nutgram $bot)
     {
-        $payment = new PaymentService;
+        $payment = app(PaymentService::class);
         $plan    = $this->get_selected_plan($bot);
 
         $gateway = $payment->createPaymentLink($plan->amount, $bot->userId());
