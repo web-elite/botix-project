@@ -177,13 +177,13 @@ class XUIApiService
     }
 
     // ویرایش تنظیمات یک inbound
-    public function updateInbound($data)
+    public function updateInbound($data, $inboundId)
     {
-        return $this->request('POST', '/panel/api/inbounds/update', $data);
+        return $this->request('POST', "/panel/api/inbounds/update/{$inboundId}", $data);
     }
 
     // ویرایش اطلاعات یک کلاینت
-    public function updateClient($data,$uuid)
+    public function updateClient($inboundId, $uuid, $clientData)
     {
         return $this->request('POST', "/panel/api/inbounds/updateClient/{$uuid}", $data);
     }
