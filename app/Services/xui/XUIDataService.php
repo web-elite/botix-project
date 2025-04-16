@@ -98,8 +98,8 @@ class XUIDataService
     private function formatClientData(array $client): array
     {
         return [
-            'status'       => (bool) ($client['enable'] ?? false),
-            'name'         => $this->cleanEmail($client['email'] ?? ''),
+            'status'       => (bool) ($client['enable']),
+            'name'         => $client['email'] ?? '',
             'id'           => (string) ($client['id'] ?? ''),
             'subscription' => (string) ($client['subId'] ?? ''),
             'time_limit'   => (int) ($client['expiryTime'] ?? 0),
@@ -123,33 +123,6 @@ class XUIDataService
         return isset($client['total']) && $client['total'] > 0
         ? min(100, round((($client['up'] ?? 0) + ($client['down'] ?? 0)) / $client['total'] * 100, 2))
         : null;
-    }
-
-    /**
-     * Clean email format.
-     */
-    private function cleanEmail(string $email): string
-    {
-        $patterns = [
-            '/\d+--/',            // Remove numbers followed by double hyphens (e.g., "4--")
-            '/\d+==/',            // Remove numbers followed by double equals (e.g., "4==")
-            '/b--/',              // Remove literal "b--"
-            '/(\w+)-(2user\b)/i', // Handle "2user" case (case insensitive)
-            '/(\w+)-(3user\b)/i', // Handle "3user" case (case insensitive)
-            '/\s+/',              // Remove all whitespace
-        ];
-
-        $replacements = [
-            '', // For patterns 1-3
-            '',
-            '',
-            '$1($2)', // For pattern 4 (wraps in parentheses)
-            '$1($2)', // For pattern 5
-            '',       // For pattern 6
-        ];
-
-        $cleaned = preg_replace($patterns, $replacements, $email);
-        return trim(strtolower($cleaned));
     }
 
     /**
