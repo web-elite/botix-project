@@ -21,7 +21,7 @@ class SubscribeMenu extends InlineMenu
     public function start(Nutgram $bot)
     {
         try {
-            $userService = new UserService;
+            $userService = app(UserService::class);
             $userSubs    = $userService->getUserXuiData($bot->userId());
 
             if (count($userSubs) > 0) {

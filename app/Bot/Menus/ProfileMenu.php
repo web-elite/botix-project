@@ -21,7 +21,7 @@ class ProfileMenu extends InlineMenu
         $this->clearButtons();
         show_loading_bot($bot);
 
-        $userService   = new UserService;
+        $userService   = app(UserService::class);
         $subscriptions = $userService->getUserXuiData($bot->chatId());
         $subCount      = count($subscriptions);
 
