@@ -56,4 +56,53 @@ class User extends Authenticatable
             'password'          => 'hashed',
         ];
     }
+
+    /**
+     * Find a user by Telegram ID (tg_id).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int|string $tgId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFindByTgId($query, $tgId)
+    {
+        return $query->where('tg_id', $tgId);
+    }
+
+    /**
+     * Get the user's meta data.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $username
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getXuiDataAttribute()
+    {
+        return data_get($this->meta, 'xui_data');
+    }
+
+    /**
+     * Get the user's meta data.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $username
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getTelegramDataAttribute()
+    {
+        return data_get($this->meta, 'telegram_data');
+    }
+
+    /**
+     * Get the user's Telegram Username.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $username
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getTelegramUsernameAttribute()
+    {
+        $tgData = data_get($this->meta, 'telegram_data');
+        return $tgData['username'] ?? $tgData['id'];
+    }
 }
