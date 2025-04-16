@@ -31,17 +31,41 @@ class XUIApiService
 
     private function login()
     {
-        $response = Http::asForm()->post("{$this->baseUrl}/login", [
-            'username' => $this->username,
-            'password' => $this->password,
-        ]);
-        if ($response->successful()) {
-            Log::channel('xui-api')->info('Login successful', ['username' => $this->username]);
-            $this->sessionCookie = $response->header('Set-Cookie');
-            return true;
+        try {
+            $response = Http::asForm()->post("{$this->baseUrl}/login", [
+                'username' => $this->username,
+                'password' => $this->password,
+            ]);
+
+            if ($response->successful()) {
+                Log::channel('xui-api')->info('Login successful', ['username' => $this->username]);
+                $this->sessionCookie = $response->header('Set-Cookie');
+                return true;
+            }
+
+            Log::channel('xui-api')->error('Login failed', [
+                'username' => $this->username,
+                'status'   => $response->status(),
+                'body'     => $response->body(),
+            ]);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::channel('xui-api')->error('ConnectionException during login', [
+                'username' => $this->username,
+                'message'  => $e->getMessage(),
+            ]);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            Log::channel('xui-api')->error('RequestException during login', [
+                'username' => $this->username,
+                'message'  => $e->getMessage(),
+                'response' => optional($e->response)->body(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('xui-api')->error('Unexpected error during login', [
+                'username' => $this->username,
+                'message'  => $e->getMessage(),
+            ]);
         }
 
-        Log::channel('xui-api')->error('Login failed', ['username' => $this->username, 'response' => $response->body()]);
         return false;
     }
 
