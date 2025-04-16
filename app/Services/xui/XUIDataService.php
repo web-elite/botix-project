@@ -74,7 +74,11 @@ class XUIDataService
     {
         $lookup = array_column($settingsClients, null, 'email');
         return array_map(function ($item) use ($lookup) {
-            return $item + $lookup[$item['email']];
+            $email = $item['email'];
+            if (isset($lookup[$email]) && isset($lookup[$email]['enable'])) {
+                $item['enable'] = $lookup[$email]['enable'];
+            }
+            return $item + $lookup[$email];
         }, $statsClients);
     }
 
