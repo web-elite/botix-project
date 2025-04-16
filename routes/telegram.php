@@ -47,4 +47,7 @@ $bot->onCallbackQueryData('profile', ProfileMenu::class);
 // Learn More
 $bot->onText('آموزش ها 📚', HowToUseMenu::class);
 $bot->onCallbackQueryData('howtouse', HowToUseMenu::class);
-$bot->onCallbackQueryData('howtouse:main', HowToUseMenu::class);
+
+// About Us
+$bot->onText('چرا دریچه؟ 😎', AboutCommand::class);
+$bot->onCallbackQueryData('aboutus', AboutCommand::class);
