@@ -162,9 +162,9 @@ return [
             ],
         ],
 
-        'gateways'   => [
+        'payments'   => [
             'driver'         => 'daily',
-            'path'           => storage_path('logs/services/gateways/gateways.log'),
+            'path'           => storage_path('logs/services/payments/payment.log'),
             'level'          => 'debug',
             'days'           => 7,
             'formatter'      => \Monolog\Formatter\LineFormatter::class,
