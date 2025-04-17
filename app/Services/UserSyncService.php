@@ -28,7 +28,7 @@ class UserSyncService
     {
         try {
             $groupedClients = $this->xuiDataService->getUsersData();
-
+            $this->setXuiSubsStatusOff();
             collect($groupedClients)
                 ->map(function ($client, $tgId) {
                     try {
@@ -70,6 +70,24 @@ class UserSyncService
             ]);
             throw $e; // Re-throw if you want calling code to handle it
         }
+    }
+
+    private function setXuiSubsStatusOff()
+    {
+        User::chunk(100, function ($users) {
+            foreach ($users as $user) {
+                $meta = $user->meta;
+
+                if (isset($meta['xui_data']) && is_array($meta['xui_data'])) {
+                    foreach ($meta['xui_data'] as $key => &$sub) {
+                        $sub['status'] = false;
+                    }
+
+                    $user->meta = $meta;
+                    $user->save();
+                }
+            }
+        });
     }
 
     public function syncTelegramUser(object $telegramUser): void
