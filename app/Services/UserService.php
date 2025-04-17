@@ -140,4 +140,59 @@ class UserService
 
 INFO;
     }
+
+    /**
+     * Get all user subscriptions as formatted string.
+     *
+     * @param string $tgId
+     * @return string
+     */
+    public function getUserSubscriptions(string $tgId): string
+    {
+        $result        = '';
+        $subscriptions = $this->getUserXuiData($tgId, 'active');
+
+        $statusMap = [
+            'active'    => '✅',
+            'expired'   => '❌',
+            'pending'   => '⏳',
+            'suspended' => '⛔',
+            'canceled'  => '❌',
+            'deleted'   => '❌',
+            'unknown'   => '❓',
+        ];
+
+        foreach ($subscriptions as $subId => $data) {
+            $planName = get_clean_name($data['name']) ?? 'نامشخص';
+
+            $panelBase = sprintf(
+                "%s://%s:%s",
+                env('XUI_SSL_ACTIVE') ? 'https' : 'http',
+                env('XUI_SUB_DOMAIN'),
+                env('XUI_SUB_PORT')
+            );
+
+            $subscriptionId = $data['subscription'] ?? '';
+            $subUrl         = "{$panelBase}/" . env('XUI_SUB_PATH') . "/{$subscriptionId}";
+            $jsonUrl        = "{$panelBase}/" . env('XUI_SUB_JSON_PATH') . "/{$subscriptionId}";
+
+            $timeLimit    = $data['time_limit'] ?? 0;
+            $hasTimeLimit = $timeLimit > 0;
+            $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
+            $userStatus   = $data['status'] ?? null;
+
+            $status = match (true) {
+                $userStatus === 'suspended' => $statusMap['suspended'],
+                $userStatus === 'canceled' => $statusMap['canceled'],
+                $userStatus === 'deleted' => $statusMap['deleted'],
+                ! $hasTimeLimit => $statusMap['active'],
+                $isExpired => $statusMap['expired'],
+                default => $statusMap['active'],
+            };
+
+            $result .= "{$status} {$planName}:\n🔗 *لینک معمولی* (`{$subUrl}`)\n🔗 *لینک حرفه‌ای* (`{$jsonUrl}`)\n\n";
+        }
+
+        return $result;
+    }
 }
