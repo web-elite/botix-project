@@ -58,7 +58,7 @@ class PaymentService
         try {
             $transaction = Transactions::where('ref_id', $trackId)->first();
             if (! $transaction || $transaction->status === 'paid') {
-                Log::error('Transaction not found or already paid', [
+                Log::channel('payments')->error('Transaction not found or already paid', [
                     'trackId' => $trackId,
                     'status'  => $transaction ? $transaction->status : 'not found',
                 ]);
@@ -81,7 +81,7 @@ class PaymentService
             $adminNotif = app(NotificationAdminHelperService::class);
 
             if (! $result['status']) {
-                Log::error('Transaction failed', [
+                Log::channel('payments')->error('Transaction failed', [
                     'trackId' => $trackId,
                     'error'   => $result['message'],
                 ]);
@@ -108,7 +108,7 @@ class PaymentService
             $updateIsOk = $xuiData->updateClientAfterPurchase($transaction);
 
             if (! $updateIsOk) {
-                Log::error('Failed to update client in XUI', [
+                Log::channel('payments')->error('Failed to update client in XUI', [
                     'trackId' => $trackId,
                     'userId'  => $transaction->user_id,
                 ]);
@@ -124,7 +124,7 @@ class PaymentService
                 return false;
             }
 
-            Log::info('Transaction successful', [
+            Log::channel('payments')->info('Transaction successful', [
                 'trackId' => $trackId,
                 'userId'  => $transaction->user_id,
             ]);
@@ -154,7 +154,7 @@ class PaymentService
 
             return true;
         } catch (\Throwable $th) {
-            Log::error('Error confirming transaction', [
+            Log::channel('payments')->error('Error confirming transaction', [
                 'trackId'   => $trackId,
                 'error'     => $th->getMessage(),
                 'File:line' => $th->getFile() . ':' . $th->getLine(),
