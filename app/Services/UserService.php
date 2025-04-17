@@ -33,9 +33,9 @@ class UserService
                 $timeLimit    = $sub['time_limit'] ?? 0;
                 $hasTimeLimit = $timeLimit > 0;
                 $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
-                $userStatus   = $sub['status'] ?? null;
+                $userStatus   = $sub['status'] ?? false;
 
-                return ! in_array($userStatus, ['suspended', 'canceled', 'deleted']) && ! ($hasTimeLimit && $isExpired);
+                return $userStatus && ! $isExpired;
             })->toArray();
         }
 
