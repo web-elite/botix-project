@@ -2,6 +2,7 @@
 namespace App\Bot\Menus;
 
 use App\Models\User;
+use App\Services\UserService;
 use App\Services\xui\XUIDataService;
 use SergiX44\Nutgram\Conversations\InlineMenu;
 use SergiX44\Nutgram\Nutgram;
@@ -20,8 +21,8 @@ class TestPlanMenu extends InlineMenu
     public function start(Nutgram $bot)
     {
         $this->clearButtons();
-        $user = User::findByTgId($bot->chatId())->first();
-        if ($user->xui_data) {
+        $userXuiSubs = app(UserService::class)->getUserXuiData($bot->chatId(), 'active');
+        if (! filled($userXuiSubs)) {
             $message = "❌ اشتراک تستی فقط برای کاربرانی که هنوز اشتراک خریداری نکرده‌اند، فعال می‌شود.\n\n";
             $message .= "شما قبلاً اشتراک خریداری کرده‌اید و نمی‌توانید از اشتراک تستی استفاده کنید.\n\n";
             $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
