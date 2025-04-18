@@ -80,7 +80,7 @@ class UserSyncService
 
                 if (isset($meta['xui_data']) && is_array($meta['xui_data'])) {
                     foreach ($meta['xui_data'] as $key => &$sub) {
-                        $sub['status'] = false;
+                        $sub['status'] = 'deleted';
                     }
 
                     $user->meta = $meta;
