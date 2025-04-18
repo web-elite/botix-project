@@ -263,9 +263,7 @@ class SubscribeMenu extends InlineMenu
         $subId       = $bot->getUserData('selected_sub_id', $bot->chatId());
         $userService = app(UserService::class);
         $userSub     = $userService->getUserXuiData($bot->userId(), $subId);
-        if (preg_match('/(\d+)user/', $userSub['name'], $matches)) {
-            Log::channel('bot')->info("user count find : " . $matches[1]);
-
+        if (filled($userSub) and preg_match('/(\d+)user/', $userSub['name'], $matches)) {
             return (int) $matches[1];
         }
         return 1;
