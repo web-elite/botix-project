@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Bot\Menus;
 
 use App\Models\User;
+use App\Services\Notifications\NotificationAdminHelperService;
 use App\Services\UserService;
 use App\Services\xui\XUIDataService;
 use SergiX44\Nutgram\Conversations\InlineMenu;
@@ -21,17 +23,10 @@ class TestPlanMenu extends InlineMenu
     public function start(Nutgram $bot)
     {
         $this->clearButtons();
-        $userXuiSubs = app(UserService::class)->getUserXuiData($bot->chatId(), 'active');
-        if (! filled($userXuiSubs)) {
-            $message = "❌ اشتراک تستی فقط برای کاربرانی که هنوز اشتراک خریداری نکرده‌اند، فعال می‌شود.\n\n";
-            $message .= "شما قبلاً اشتراک خریداری کرده‌اید و نمی‌توانید از اشتراک تستی استفاده کنید.\n\n";
-            $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
-                ->addButtonRow(InlineKeyboardButton::make('👀 مشاهده اشتراک های من 👤', callback_data: "profile"))
-                ->addButtonRow(InlineKeyboardButton::make('📚 آموزش نحوه استفاده 🎥', callback_data: "howtouse"))
-                ->orNext('cancel')->showMenu();
+        $userIsOk = $this->check_user_plans($bot);
+        if (!$userIsOk) {
             return;
         }
-
         $message = "🎁 *اشتراک تستی* 🎁\n\n";
         $message .= "با استفاده از اشتراک تستی، می‌تونی به مدت ۲۴ ساعت از سرویس‌های ما به صورت رایگان استفاده کنی! 🚀✨\n\n";
         $message .= "برای فعال‌سازی اشتراک تستی، کافیه روی دکمه زیر کلیک کنی.\n\n";
@@ -43,6 +38,11 @@ class TestPlanMenu extends InlineMenu
 
     public function active_test_plan(Nutgram $bot)
     {
+        $this->clearButtons();
+        $userIsOk = $this->check_user_plans($bot);
+        if (!$userIsOk) {
+            return;
+        }
         $xui        = app(XUIDataService::class);
         $user       = User::findByTgId($bot->chatId())->first();
         $clientData = $xui->createTestClient($user);
@@ -60,11 +60,26 @@ class TestPlanMenu extends InlineMenu
             ->addButtonRow(InlineKeyboardButton::make('👀 مشاهده اشتراک های من 👤', callback_data: "profile"))
             ->addButtonRow(InlineKeyboardButton::make('📚 آموزش نحوه استفاده 🎥', callback_data: "howtouse"))
             ->orNext('cancel')->showMenu();
-
     }
 
     public function cancel(Nutgram $bot)
     {
         $this->clearButtons();
+    }
+
+    private function check_user_plans(Nutgram $bot)
+    {
+        $userXuiSubs = app(UserService::class)->getUserXuiData($bot->chatId(), 'active');
+        if (count($userXuiSubs) > 0) {
+            $message = "❌ اشتراک تستی فقط برای کاربرانی که هنوز اشتراک خریداری نکرده‌اند، فعال می‌شود.\n\n";
+            $message .= "شما قبلاً اشتراک خریداری کرده‌اید و نمی‌توانید از اشتراک تستی استفاده کنید.\n\n";
+            $this->menuText(escape_markdown($message), ['parse_mode' => ParseMode::MARKDOWN])
+                ->addButtonRow(InlineKeyboardButton::make('👀 مشاهده اشتراک های من 👤', callback_data: "profile"))
+                ->addButtonRow(InlineKeyboardButton::make('📚 آموزش نحوه استفاده 🎥', callback_data: "howtouse"))
+                ->orNext('cancel')->showMenu();
+            return false;
+        } else {
+            return true;
+        }
     }
 }
