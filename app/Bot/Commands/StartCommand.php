@@ -54,17 +54,16 @@ class StartCommand
             )
             ->addRow(
                 KeyboardButton::make('دریافت اشتراک تستی 🎁'),
+                // KeyboardButton::make('پروکسی رایگان تلگرام 🟢'),
                 // KeyboardButton::make('دریافت کد تخفیف 🎟️'),
             )
             ->addRow(
                 // KeyboardButton::make('دعوت دوستان 🔗'),
-                KeyboardButton::make('چرا دریچه؟ 😎'),
-                KeyboardButton::make('سوالات متداول ⁉️'),
             )
             ->addRow(
                 // KeyboardButton::make('پشتیبانی هوش مصنوعی 🤖'),
                 KeyboardButton::make('آموزش ها 📚'),
-                KeyboardButton::make('پشتیبانی 🫂'),
+                KeyboardButton::make('چرا دریچه؟ 😎'),
             );
     }
 
