@@ -21,6 +21,17 @@ class GlobalBotMiddleware
     public function __invoke(Nutgram $bot, callable $next): void
     {
 
+        $blockedUsers = [
+            5756836646,
+        ];
+
+        if (in_array($bot->chatId(), $blockedUsers)) {
+            $bot->sendMessage(
+                    text: "حساب کاربری شما توسط ادمین مسدود شد. ❌\n"
+                );
+            return;
+        }
+
         // $bot->sendMessage(
         //     text: "🔃 ربات در حال بروزرسانی می‌باشد... \n📢 آدرس کانال دریچه: " . env('TELEGRAM_BOT_ADMIN_CHANNEL') . "\n آدرس پشتیبانی: @Dariche_vpn_admin\n"
         // );
@@ -163,7 +174,7 @@ class GlobalBotMiddleware
                 InlineKeyboardButton::make('عضویت در کانال 📢', "tg://resolve?domain=$channelUsername")
             )
             ->addRow(
-                InlineKeyboardButton::make('عضو شدم ✅', callback_data: 'bot:restart')
+                InlineKeyboardButton::make('عضو شدم ✅', callback_data: 'restart')
             );
     }
 }
