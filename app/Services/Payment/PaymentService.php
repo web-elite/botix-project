@@ -76,7 +76,7 @@ class PaymentService
             $transaction->save();
 
             $user       = User::find($transaction->user_id);
-            $username   = $user->telegram_data->username ?? 'NotFoundUserName';
+            $username   = $user->telegram_data['username'] ?? 'NotFoundUserName';
             $bot        = new Nutgram(env('TELEGRAM_TOKEN'));
             $adminNotif = app(NotificationAdminHelperService::class);
 
