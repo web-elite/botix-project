@@ -136,6 +136,20 @@ return [
             ],
         ],
 
+        'telegram'        => [
+            'driver'         => 'daily',
+            'path'           => storage_path('logs/bot/telegram.log'),
+            'level'          => 'error',
+            'days'           => 7,
+            'formatter'      => \Monolog\Formatter\LineFormatter::class,
+            'formatter_with' => [
+                'dateFormat'                => 'H:i:s',
+                'format'                    => "[%datetime%] %level_name%: %message% %context%\n",
+                'allowEmptyContextAndExtra' => false,
+            ],
+            'chat_id' => env('NUTGRAM_LOG_CHAT_ID'),
+        ],
+
         'cron'       => [
             'driver'         => 'daily',
             'path'           => storage_path('logs/cron.log'),
@@ -177,13 +191,6 @@ return [
 
         'emergency'  => [
             'path' => storage_path('logs/laravel.log'),
-        ],
-
-        'telegram'   => [
-            'driver'  => 'custom',
-            'via'     => \Nutgram\Laravel\Log\NutgramLogger::class,
-            'level'   => 'debug',
-            'chat_id' => env('NUTGRAM_LOG_CHAT_ID'), // any chat_id where bot can write messages
         ],
 
         'nutgram'    => [
