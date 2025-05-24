@@ -185,6 +185,7 @@ class XUIApiService
     // ویرایش اطلاعات یک کلاینت
     public function updateClient($inboundId, $uuid, $clientData)
     {
+        $data = ['id' => $inboundId, 'settings' => json_encode(['clients' => [$clientData]])];
         return $this->request('POST', "/panel/api/inbounds/updateClient/{$uuid}", $data);
     }
 
