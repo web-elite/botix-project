@@ -164,10 +164,8 @@ class XUIDataService
      *
      * @return array
      */
-    public function getAllInboundsId(): array
+    public function getAllInboundsId(array $excludedIds = [27, 29, 45, 44, 43, 46]): array
     {
-        $excludedIds = [27, 29];
-
         $inbounds = $this->api->getInbounds();
 
         $filtered = array_filter($inbounds, fn($inbound) => ! in_array((int) $inbound['id'], $excludedIds));
