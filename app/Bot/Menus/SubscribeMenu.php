@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Bot\Menus;
 
 use App\Models\SubscriptionPlan;
@@ -30,7 +31,6 @@ class SubscribeMenu extends InlineMenu
             } else {
                 $this->select_subscription($bot);
             }
-
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on start method: " . $th->getMessage());
         }
@@ -68,10 +68,9 @@ class SubscribeMenu extends InlineMenu
     public function select_subscription(Nutgram $bot)
     {
         try {
-            $subId = $bot->callbackQuery()->data;
+            $subId = isset($bot->callbackQuery()->data) ? $bot->callbackQuery()->data : '';
             $bot->setUserData('selected_sub_id', $subId, $bot->chatId());
             $this->show_plans($bot);
-
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_subscription method: " . $th->getMessage());
         }
@@ -103,7 +102,10 @@ class SubscribeMenu extends InlineMenu
                 }
             }
 
-            $plans = $plansQuery->get();
+            $plans = $plansQuery->get()->sortBy([
+                ['duration', 'asc'],
+                ['users_count', 'asc'],
+            ]);
 
             foreach ($plans as $plan) {
                 $label = $plan->name . ' - ' . number_format($plan->amount / 1000) . ' تومان 💰';
@@ -114,7 +116,6 @@ class SubscribeMenu extends InlineMenu
 
             $this->addButtonRow(InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'back@start'))
                 ->showMenu();
-
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on show_plans method: " . $th->getMessage());
         }
@@ -128,7 +129,7 @@ class SubscribeMenu extends InlineMenu
     public function select_plan(Nutgram $bot)
     {
         try {
-            $planSlug = $bot->callbackQuery()->data;
+            $planSlug = isset($bot->callbackQuery()->data) ? $bot->callbackQuery()->data : '';
             $plan     = SubscriptionPlan::where('slug', $planSlug)->first();
 
             if (! $plan) {
@@ -138,7 +139,6 @@ class SubscribeMenu extends InlineMenu
 
             $bot->setUserData('selected_plan_id', $plan->id, $bot->chatId());
             $this->show_checkout($bot);
-
         } catch (\Throwable $th) {
             Log::channel('bot')->error("Error in SubscribeMenu at {$th->getLine()} on select_plan method: " . $th->getMessage());
         }
@@ -173,16 +173,20 @@ class SubscribeMenu extends InlineMenu
         $bot->sendMessage("🚫 خرید اشتراک لغو شد.\n🤔 چه کاری میخوای انجام بدی؟ از منو ربات انتخاب کن");
     }
 
-    private function start_gateway(Nutgram $bot)
+    private function start_gateway(Nutgram $bot): array
     {
         $payment = app(PaymentService::class);
         $plan    = $this->get_selected_plan($bot);
 
         $gateway = $payment->createPaymentLink($plan->amount, $bot->userId());
-
+        Log::channel('bot')->info("Payment link created: ", [
+            'user_id' => $bot->userId(),
+            'plan_id' => $plan->id,
+            'gateway' => $gateway,
+        ]);
         if (! isset($gateway['url'])) {
             $bot->sendMessage("⛔️ خطا در ایجاد لینک پرداخت. لطفاً دوباره تلاش کنید.");
-            return;
+            return [];
         }
 
         $user  = User::where('tg_id', $bot->userId())->first();
@@ -268,5 +272,4 @@ class SubscribeMenu extends InlineMenu
         }
         return 1;
     }
-
 }
