@@ -60,7 +60,7 @@ class HowToUseMenu extends InlineMenu
                 InlineKeyboardButton::make('📥 دانلود نسخه x86_64', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayNG', 'x86_64.apk'))
             )
             ->addButtonRow(
-                InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'howtouse')
+                $this->backInlineKeyboardButton()
             )
             ->showMenu();
     }
@@ -88,7 +88,7 @@ class HowToUseMenu extends InlineMenu
                 InlineKeyboardButton::make('📥 لینک دانلود Streisand', url: 'https://apps.apple.com/us/app/streisand/id6450534064')
             )
             ->addButtonRow(
-                InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'howtouse')
+                $this->backInlineKeyboardButton()
             )
             ->showMenu();
     }
@@ -96,18 +96,14 @@ class HowToUseMenu extends InlineMenu
     public function howto_windows(Nutgram $bot)
     {
         $this->clearButtons();
-        $text = "*💻 آموزش ویندوز:*\n\n"
-            . "1. نرم‌افزار *v2rayN* رو از دکمه زیر دانلود کن.\n"
-            . "2. فایل رو از حالت فشرده خارج و اجرا کن.\n"
-            . "3. از داخل نرم‌افزار لینک اشتراک رو ایمپورت کن.\n"
-            . "4. روی کانکشن کلیک کن تا متصل بشی 🔐";
+        $text = "*💻 آموزش ویندوز:*\n\n" . $this->getDownloadStepsText($bot) . $this->v2rayNHowtoText();
 
         $this->menuText(escape_markdown($text), ['parse_mode' => ParseMode::MARKDOWN])
             ->addButtonRow(
-                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayNG', 'windows-64-desktop.zip'))
+                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayN', 'windows-64-desktop.zip'))
             )
             ->addButtonRow(
-                InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'howtouse')
+                $this->backInlineKeyboardButton()
             )
             ->showMenu();
     }
@@ -115,17 +111,14 @@ class HowToUseMenu extends InlineMenu
     public function howto_linux(Nutgram $bot)
     {
         $this->clearButtons();
-        $text = "*🐧 آموزش لینوکس / مک:*\n\n"
-            . "1. نرم‌افزار *v2rayN* رو از ریپازیتوری زیر بگیر (با Wine هم قابل اجراست).\n"
-            . "2. لینک اشتراکتو داخلش ایمپورت کن و متصل شو.\n\n"
-            . "💡 اگه با GUI راحت نیستی، می‌تونیم راهنمای CLI هم بهت بدیم.";
+        $text = "*🐧 آموزش لینوکس / مک:*\n\n" . $this->getDownloadStepsText($bot) . $this->v2rayNHowtoText();
 
         $this->menuText(escape_markdown($text), ['parse_mode' => ParseMode::MARKDOWN])
             ->addButtonRow(
-                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayNG', 'linux-64.AppImage'))
+                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayN', 'linux-64.AppImage'))
             )
             ->addButtonRow(
-                InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'howtouse')
+                $this->backInlineKeyboardButton()
             )
             ->showMenu();
     }
@@ -133,17 +126,14 @@ class HowToUseMenu extends InlineMenu
     public function howto_macos(Nutgram $bot)
     {
         $this->clearButtons();
-        $text = "*🐧 آموزش مک:*\n\n"
-            . "1. نرم‌افزار *v2rayN* رو از ریپازیتوری زیر بگیر (با Wine هم قابل اجراست).\n"
-            . "2. لینک اشتراکتو داخلش ایمپورت کن و متصل شو.\n\n"
-            . "💡 اگه با GUI راحت نیستی، می‌تونیم راهنمای CLI هم بهت بدیم.";
+        $text = "*🐧 آموزش مک:*\n\n" . $this->getDownloadStepsText($bot) . $this->v2rayNHowtoText();
 
         $this->menuText(escape_markdown($text), ['parse_mode' => ParseMode::MARKDOWN])
             ->addButtonRow(
-                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayNG', 'macos-64.zip'))
+                InlineKeyboardButton::make('📥 دانلود v2rayN', url: $this->getLatestReleaseDownloadLink('2dust', 'v2rayN', 'macos-64.zip'))
             )
             ->addButtonRow(
-                InlineKeyboardButton::make('🔙 بازگشت', callback_data: 'howtouse')
+                $this->backInlineKeyboardButton()
             )
             ->showMenu();
     }
@@ -151,6 +141,26 @@ class HowToUseMenu extends InlineMenu
     public function cancel(Nutgram $bot)
     {
         $bot->sendMessage("🤔 چه کاری می‌خوای انجام بدی؟ از منوی ربات انتخاب کن.");
+    }
+
+    private function backInlineKeyboardButton(): InlineKeyboardButton
+    {
+        return InlineKeyboardButton::make('🔙 برگشت به منوی اصلی', callback_data: 'howtouse');
+    }
+
+    private function v2rayNHowtoText(): string
+    {
+        return "2. پس از دانلود فایل zip، فایل رو از حالت فشرده خارج و اجرا کن.\n"
+            . "3. در نوار بالای نرم افزار روی گزینه Subscription Group (گروه‌های اشتراک) کلیک کنید و گزینه Add (افزودن) رو انتخاب کنید.\n"
+            . "4. فیلد اول یک نام دلخواه وارد کنید. (فیلد REMARK)\n"
+            . "5. فیلد دوم لینک اشتراکتون (حرفه ای یا معمولی) رو وارد کنید. (فیلد URL)\n"
+            . "💡 حتما گزینه Enable Update (فعالسازی بروزرسانی) فعال باشه تا بروزترین نسخه سرورتون رو همیشه داشته باشید."
+            . "6. در نهایت روی گزینه Confirm (تایید) کلیک کنید.\n"
+            . "7. به صفحه اصلی نرم افزار برگردید و سرور مورد نظرتون رو یک بار روش کلیک کنید و Enter بزنید تا Active (فعال) بشه."
+            . "8. حالا کافیه در نوار پایین نرم افزار گزینه Set system Proxy (تنظیم پروکسی سیستم) رو انتخاب کنید و روی گزینه Connect (اتصال) کلیک کنید.\n"
+            . "💡 شما با این کار پروکسی سیستم شما تنظیم میشه و تمام نرم افزارها از این پروکسی استفاده میکنند.\n"
+            . "💡 میتونید گزینه Enable TUN (فعالسازی تون) رو هم فعال کنید تا کل سیستم از فیلترشکن استفاده کنه.\n"
+            . "حالا میتونید با خیال راحت از نرم افزارها و وبسایت‌های فیلتر شده استفاده کنید.\n";
     }
 
     private function getLatestReleaseDownloadLink($owner, $repo, $match = null)
