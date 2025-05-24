@@ -1,14 +1,18 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
 
 if (! function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
+        $text = preg_replace('/([a-zA-Z])_([a-zA-Z])/', '$1\\_$2', $text);
+
         $characters = ['[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
         foreach ($characters as $char) {
             $text = str_replace($char, '\\' . $char, $text);
         }
+
         return $text;
     }
 }
