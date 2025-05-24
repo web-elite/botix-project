@@ -16,8 +16,13 @@ class ZibalService
         $this->merchantId = env('ZIBAL_MERCHANT_KEY');
     }
 
-    public function createPaymentLink(int $amount, int $mobile = null, ?string $callbackUrl = null): array
+    public function createPaymentLink(int $amount, ?int $mobile = null, ?string $callbackUrl = null): array
     {
+        Log::channel('payments')->info('Zibal Payment Link:', [
+            'amount'      => $amount,
+            'mobile'      => $mobile,
+            'callbackUrl' => $callbackUrl,
+        ]);
         try {
             $callbackUrl = $callbackUrl ?? 'https://bya2game.ir/thanks';
 
@@ -30,15 +35,25 @@ class ZibalService
             $response = $this->sendToZibal($paymentData);
 
             if ($response && isset($response['trackId'])) {
+                Log::channel('payments')->info('Zibal Payment:', [
+                    'request'  => $paymentData,
+                    'response' => $response,
+                ]);
                 $this->trackId = $response['trackId'];
                 return [
                     'url'      => 'https://gateway.zibal.ir/start/' . $this->trackId,
                     'ref_id' => $response['trackId'],
                 ];
+            }else{
+                Log::channel('payments')->error('Zibal Payment Error:', [
+                    'request'  => $paymentData,
+                    'response' => $response,
+                ]);
+                return ['status' => 'error', 'message' => 'Payment request failed'];
             }
 
         } catch (Throwable $e) {
-            Log::channel('payments')->error("Zibal Error in {$context}:", [
+            Log::channel('payments')->error("Zibal Error in createPaymentLink:", [
                 'error_message' => $e->getMessage(),
                 'file'          => $e->getFile(),
                 'line'          => $e->getLine(),
