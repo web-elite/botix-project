@@ -4,6 +4,7 @@ use App\Bot\Commands\AboutCommand;
 use App\Bot\Commands\StartCommand;
 use App\Bot\Menus\HowToUseMenu;
 use App\Bot\Menus\ProfileMenu;
+use App\Bot\Menus\ProxyMenu;
 use App\Bot\Menus\SubscribeMenu;
 use App\Bot\Menus\TestPlanMenu;
 use App\Http\Middleware\GlobalBotMiddleware;
@@ -32,14 +33,21 @@ $bot->onCallbackQueryData('restart', StartCommand::class);
 $bot->onText('خرید یا تمدید اشتراک 💳', SubscribeMenu::class);
 $bot->onCallbackQueryData('buy_subscription', SubscribeMenu::class);
 $bot->onCallbackQueryData('renewal', SubscribeMenu::class);
+$bot->onCommand('buy', SubscribeMenu::class);
+$bot->onCommand('renewal', SubscribeMenu::class);
 
 // User Subscribe
 $bot->onText('دریافت اشتراک تستی 🎁', TestPlanMenu::class);
 $bot->onCallbackQueryData('test_plan', TestPlanMenu::class);
 
+// Free Telegram Proxy
+$bot->onText('پروکسی رایگان تلگرام 🟢', ProxyMenu::class);
+$bot->onCallbackQueryData('free_proxy', ProxyMenu::class);
+
 // User Profile
 $bot->onText('اشتراک‌های من 👤', ProfileMenu::class);
 $bot->onCallbackQueryData('profile', ProfileMenu::class);
+$bot->onCommand('profile', ProfileMenu::class);
 
 // Learn More
 $bot->onText('آموزش ها 📚', HowToUseMenu::class);
@@ -48,3 +56,4 @@ $bot->onCallbackQueryData('howtouse', HowToUseMenu::class);
 // About Us
 $bot->onText('چرا دریچه؟ 😎', AboutCommand::class);
 $bot->onCallbackQueryData('aboutus', AboutCommand::class);
+$bot->onCommand('support', AboutCommand::class);
