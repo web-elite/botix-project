@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Payment\Gateways;
 
 use GuzzleHttp\Client;
@@ -18,13 +19,14 @@ class ZibalService
 
     public function createPaymentLink(int $amount, ?int $mobile = null, ?string $callbackUrl = null): array
     {
+        $callbackUrl = $callbackUrl ?? 'https://bya2game.ir/thanks';
         Log::channel('payments')->info('Zibal Payment Link:', [
             'amount'      => $amount,
             'mobile'      => $mobile,
             'callbackUrl' => $callbackUrl,
         ]);
+
         try {
-            $callbackUrl = $callbackUrl ?? 'https://bya2game.ir/thanks';
 
             $paymentData = [
                 'merchant'    => $this->merchantId,
@@ -41,17 +43,17 @@ class ZibalService
                 ]);
                 $this->trackId = $response['trackId'];
                 return [
+                    'status' => 'success',
                     'url'      => 'https://gateway.zibal.ir/start/' . $this->trackId,
                     'ref_id' => $response['trackId'],
                 ];
-            }else{
+            } else {
                 Log::channel('payments')->error('Zibal Payment Error:', [
                     'request'  => $paymentData,
                     'response' => $response,
                 ]);
                 return ['status' => 'error', 'message' => 'Payment request failed'];
             }
-
         } catch (Throwable $e) {
             Log::channel('payments')->error("Zibal Error in createPaymentLink:", [
                 'error_message' => $e->getMessage(),
@@ -70,10 +72,12 @@ class ZibalService
         $url = 'https://gateway.zibal.ir/v1/request';
 
         try {
-            $client   = new Client();
+            $client   = new Client([
+                'timeout' => 10,
+                'connect_timeout' => 5,
+            ]);
             $response = $client->post($url, [
                 'json'    => $paymentData,
-                'headers' => ['Content-Type' => 'application/json'],
             ]);
 
             $responseData = json_decode($response->getBody(), true);
@@ -117,7 +121,6 @@ class ZibalService
             }
 
             return null;
-
         } catch (\Exception $e) {
             Log::channel('payments')->error('Zibal Verify Error:', [
                 'error'   => $e->getMessage(),
@@ -156,7 +159,6 @@ class ZibalService
             }
 
             return null;
-
         } catch (\Exception $e) {
             Log::channel('payments')->error('Zibal Inquiry Error:', [
                 'error'   => $e->getMessage(),

@@ -1,18 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
 
 if (! function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
-        $text = preg_replace('/([a-zA-Z])_([a-zA-Z])/', '$1\\_$2', $text);
-
         $characters = ['[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
         foreach ($characters as $char) {
             $text = str_replace($char, '\\' . $char, $text);
         }
-
         return $text;
     }
 }
@@ -58,7 +54,6 @@ if (! function_exists('show_loading_bot')) {
                 Log::channel('bot')->error("Unexpected error in show_loading_bot: " . $e->getMessage(), ['chat_id' => $chatId]);
             }
         }
-
     }
 }
 
@@ -139,6 +134,28 @@ if (! function_exists('get_admin_ids')) {
 if (! function_exists('this_id_is_admin')) {
     function this_id_is_admin(int $chatId): bool
     {
-        return in_array($chatId, get_admin_ids(), true);
+        return in_array($chatId, get_admin_ids());
+    }
+}
+
+/**
+ * Convert a Gregorian timestamp to a Shamsi (Persian) date.
+ *
+ * @param int $timestamp
+ * @return DateTime
+ */
+if (! function_exists('toShamsi')) {
+    function toShamsi($timestamp)
+    {
+        $formatter = new IntlDateFormatter(
+            'fa_IR@calendar=persian',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::SHORT,
+            'Asia/Tehran',
+            IntlDateFormatter::TRADITIONAL,
+            'yyyy-MM-dd HH:mm'
+        );
+
+        return $formatter->format($timestamp);
     }
 }

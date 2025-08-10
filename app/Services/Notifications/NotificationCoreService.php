@@ -39,7 +39,6 @@ class NotificationCoreService
                     parse_mode: ParseMode::MARKDOWN,
                     disable_web_page_preview: true,
                 );
-
             } else {
                 $bot->sendMessage(
                     chat_id: $tg_id,

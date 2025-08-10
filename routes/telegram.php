@@ -1,12 +1,14 @@
 <?php
 
-use App\Bot\Commands\AboutCommand;
-use App\Bot\Commands\StartCommand;
-use App\Bot\Menus\HowToUseMenu;
-use App\Bot\Menus\ProfileMenu;
-use App\Bot\Menus\ProxyMenu;
-use App\Bot\Menus\SubscribeMenu;
-use App\Bot\Menus\TestPlanMenu;
+use App\Bot\Admin\Commands\DeleteTestUsersCommand;
+use App\Bot\StartCommand;
+use App\Bot\User\Commands\AboutCommand;
+use App\Bot\User\Menus\HowToUseMenu;
+use App\Bot\User\Menus\ProfileMenu;
+use App\Bot\User\Menus\ProxyMenu;
+use App\Bot\User\Menus\SubscribeMenu;
+use App\Bot\User\Menus\TestPlanMenu;
+use App\Http\Middleware\AdminBotMiddleware;
 use App\Http\Middleware\GlobalBotMiddleware;
 
 /*
@@ -57,3 +59,15 @@ $bot->onCallbackQueryData('howtouse', HowToUseMenu::class);
 $bot->onText('چرا دریچه؟ 😎', AboutCommand::class);
 $bot->onCallbackQueryData('aboutus', AboutCommand::class);
 $bot->onCommand('support', AboutCommand::class);
+
+/**
+ * Admin Commands
+ */
+
+$bot->onText('حذف کاربران تستی 🗑️', DeleteTestUsersCommand::class)->middleware(AdminBotMiddleware::class);
+$bot->onCallbackQueryData('delete_test_users', DeleteTestUsersCommand::class)->middleware(AdminBotMiddleware::class);
+$bot->onCommand('delete_test_users', DeleteTestUsersCommand::class)->middleware(AdminBotMiddleware::class);
+
+$bot->onText('افزودن کاربر 👤', SubscribeMenu::class)->middleware(AdminBotMiddleware::class);
+$bot->onCallbackQueryData('add_user', SubscribeMenu::class)->middleware(AdminBotMiddleware::class);
+$bot->onCommand('add_user', SubscribeMenu::class)->middleware(AdminBotMiddleware::class);

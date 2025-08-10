@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +31,34 @@ class SubscriptionPlan extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope a query to only include volume-based subscription plans.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeVolPlans($query)
+    {
+        return $query->where([
+            ['gigabytes', '>', 0],
+            ['is_active', true],
+        ]);
+    }
+
+    /**
+     * Scope a query to only include time-based subscription plans.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeTimePlans($query)
+    {
+        return $query->where([
+            ['gigabytes', 0],
+            ['is_active', true],
+        ]);
     }
 
     /**

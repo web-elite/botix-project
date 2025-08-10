@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Payment;
 
 use App\Models\SubscriptionPlan;
@@ -96,10 +97,10 @@ class PaymentService
                 $bot->sendMessage(
                     chat_id: $user->tg_id,
                     text: "❌ پرداخت ناموفق بود!\n\n"
-                    . "🧾 کد پیگیری: $trackId\n"
-                    . "📄 خطا: {$result['message']}\n\n"
-                    . "ℹ️ لطفا مجدد تلاش کنید یا با پشتیبانی تماس بگیرید.\n\n"
-                    . "🔃 همچنین درصورتی که مبلغی از حساب شما کم شده توسط بانک تا 72 ساعت آینده به حساب شما بازمی‌گردد."
+                        . "🧾 کد پیگیری: $trackId\n"
+                        . "📄 خطا: {$result['message']}\n\n"
+                        . "ℹ️ لطفا مجدد تلاش کنید یا با پشتیبانی تماس بگیرید.\n\n"
+                        . "🔃 همچنین درصورتی که مبلغی از حساب شما کم شده توسط بانک تا 72 ساعت آینده به حساب شما بازمی‌گردد."
                 );
                 return false;
             }
@@ -107,7 +108,7 @@ class PaymentService
             $xuiData    = app(XUIDataService::class);
             $updateIsOk = $xuiData->updateClientAfterPurchase($transaction);
 
-            if (! $updateIsOk) {
+            if (!filled($updateIsOk)) {
                 Log::channel('payments')->error('Failed to update client in XUI', [
                     'trackId' => $trackId,
                     'userId'  => $transaction->user_id,
@@ -119,7 +120,7 @@ class PaymentService
                 $bot->sendMessage(
                     chat_id: $user->tg_id,
                     text: "❌ خطا در بروزرسانی اطلاعات کاربر در سرور!\n\n"
-                    . "لطفا با پشتیبانی تماس بگیرید.",
+                        . "لطفا با پشتیبانی تماس بگیرید.",
                 );
                 return false;
             }
@@ -142,10 +143,11 @@ class PaymentService
             $bot->sendMessage(
                 chat_id: $user->tg_id,
                 text: "🎉 پرداخت شما با موفقیت انجام شد!\n\n"
-                . "💳 شماره کارت: {$transaction->card_number}\n"
-                . "🧾 کد پیگیری: {$transaction->ref_number}\n"
-                . "🕒 زمان پرداخت: {$transaction->paid_at}\n"
-                . "📝 توضیحات: {$transaction->description}\n\n",
+                    . "💳 شماره کارت: {$transaction->card_number}\n"
+                    . "🧾 کد پیگیری: {$transaction->ref_number}\n"
+                    . "🕒 زمان پرداخت: {$transaction->paid_at}\n"
+                    . "📝 توضیحات: {$transaction->description}\n\n\n\n"
+                    . "لطفا از گزینه اشتراک‌های من، وضعیت اشتراک خودرا مشاهده کنید.👇",
                 reply_markup: InlineKeyboardMarkup::make()
                     ->addRow(
                         InlineKeyboardButton::make('اشتراک‌های من 👤', callback_data: 'profile')
@@ -162,5 +164,4 @@ class PaymentService
             return false;
         }
     }
-
 }

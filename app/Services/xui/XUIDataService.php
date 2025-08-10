@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\xui;
 
 use App\Models\SubscriptionPlan;
@@ -18,6 +19,49 @@ class XUIDataService
         $this->api = $xuiApi;
     }
 
+    public function disbaleUser($subKey)
+    {
+        $inboundsID = $this->getAllInboundsId();
+        foreach ($inboundsID as $inboundId) {
+
+            $uuid = $this->getClientUuidBySubId($subKey, $inboundId);
+
+            if (! $uuid) {
+                Log::channel('xui-api')->warning("UUID not found for subId", [
+                    'sub_key'    => $subKey,
+                    'inbound_id' => $inboundId,
+                ]);
+                continue;
+            }
+
+            $existingClient = $this->getClientByUuid($uuid, $inboundId);
+
+            if (! $existingClient) {
+                Log::channel('xui-api')->warning("Client not found for UUID", [
+                    'uuid'       => $uuid,
+                    'inbound_id' => $inboundId,
+                ]);
+                continue;
+            }
+
+            $existingClient['enable']    = false;
+            $this->api->updateClient($inboundId, $uuid, $existingClient);
+        }
+    }
+
+    public function getXUIUsersData(): array | false
+    {
+        try {
+            return $this->processInbounds($this->api->getInbounds())->toArray();
+        } catch (\Exception $e) {
+            Log::channel('xui-api')->error('getXUIUsersData : ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace'     => $e->getTraceAsString(),
+            ]);
+            return false;
+        }
+    }
+
     /**
      * Fetch and process user data from XUI API.
      */
@@ -28,7 +72,7 @@ class XUIDataService
                 $this->processInbounds($this->api->getInbounds())
             );
         } catch (\Exception $e) {
-            Log::channel('xui-api')->error('Sync Error: ' . $e->getMessage(), [
+            Log::channel('xui-api')->error('getUsersData: ' . $e->getMessage(), [
                 'exception' => $e,
                 'trace'     => $e->getTraceAsString(),
             ]);
@@ -51,11 +95,39 @@ class XUIDataService
      */
     private function processInbounds(array $inbounds): Collection
     {
-        return collect($inbounds)
-            ->flatMap(fn($inbound) => $this->extractClientsFromInbound($inbound))
-            ->filter(fn($client) => isset($client['tgId']) && is_numeric($client['tgId']) && $client['tgId'] > 0)
-            ->groupBy('tgId')
-            ->map(fn($clients) => $clients->unique('subId')->values());
+        // Step 1: Collect inbounds
+        $step1 = collect($inbounds);
+
+        // Step 2: FlatMap to extract clients
+        $step2 = $step1->flatMap(function ($inbound) {
+            return $this->extractClientsFromInbound($inbound);
+        });
+
+        // Step 3: Filter clients with valid tgId
+        $step3 = $step2->filter(function ($client) {
+            return isset($client['tgId']) && is_numeric($client['tgId']) && $client['tgId'] > 0;
+        });
+
+        // Step 4: Group by tgId
+        $aggregated = $step3
+            ->groupBy('subId')
+            ->map(function ($items) {
+                $first = $items->first();
+                $first['up'] = $items->sum('up');
+                $first['down'] = $items->sum('down');
+                return $first;
+            })
+            ->values(); // Reset index
+
+        // Step 4: Group by tgId
+        $step4 = $aggregated->groupBy('tgId');
+
+        // Step 5: Map to unique subId and reset values
+        $step5 = $step4->map(function ($clients) {
+            return $clients->unique('subId')->values();
+        });
+
+        return $step5;
     }
 
     /**
@@ -87,7 +159,7 @@ class XUIDataService
     /**
      * Prepare XUI data for output.
      */
-    private function prepareXuiData(Collection $clients): string
+    public function prepareXuiData(Collection $clients): string
     {
         return json_encode($clients->mapWithKeys(fn($client) => [
             $client['subId'] => $this->formatClientData($client),
@@ -123,8 +195,8 @@ class XUIDataService
     private function calculateUsagePercentage(array $client): ?float
     {
         return isset($client['total']) && $client['total'] > 0
-        ? min(100, round((($client['up'] ?? 0) + ($client['down'] ?? 0)) / $client['total'] * 100, 2))
-        : null;
+            ? min(100, round((($client['up'] ?? 0) + ($client['down'] ?? 0)) / $client['total'] * 100, 2))
+            : null;
     }
 
     /**
@@ -164,7 +236,7 @@ class XUIDataService
      *
      * @return array
      */
-    public function getAllInboundsId(array $excludedIds = [27, 29, 45, 44, 43, 46]): array
+    public function getAllInboundsId(array $excludedIds = []): array
     {
         $inbounds = $this->api->getInbounds();
 
@@ -184,14 +256,13 @@ class XUIDataService
         try {
             $plan   = SubscriptionPlan::find($transaction->subscription_plan_id);
             $user   = User::find($transaction->user_id);
-            $xui    = app(XUIApiService::class);
             $subKey = $transaction->user_subscription_id;
 
             $inboundIds = $this->getAllInboundsId();
 
             if ($subKey === 'new') {
                 Log::channel('xui-api')->info("Creating new client for user", ['user_id' => $user->id, 'subKey' => $subKey]);
-                return $this->createNewClient($user, $plan, $inboundIds);
+                return $this->createNewClient($user->tg_id, $user->name, $plan, $inboundIds);
             }
 
             $meta = $user->xui_data[$subKey] ?? null;
@@ -199,7 +270,7 @@ class XUIDataService
             // اگر subKey وجود نداشت، یعنی اشتراک واقعی نداشته ولی پرداخت کرده → کلاینت جدید بساز
             if (! $meta) {
                 Log::channel('xui-api')->warning("subKey not found, creating new client instead", ['user_id' => $user->id, 'subKey' => $subKey]);
-                return $this->createNewClient($user, $plan, $inboundIds);
+                return $this->createNewClient($user->tg_id, $user->name, $plan, $inboundIds);
             }
 
             Log::channel('xui-api')->info("Updating existing client", [
@@ -208,7 +279,6 @@ class XUIDataService
                 'transaction_id' => $transaction->id,
             ]);
             return $this->updateExistingClient($user, $plan, $inboundIds, $meta, $subKey);
-
         } catch (\Throwable $e) {
             Log::channel('xui-api')->error("❌ Error in updateClientAfterPurchase", [
                 'transaction_id' => $transaction->id,
@@ -229,18 +299,18 @@ class XUIDataService
      * @param array $inboundIds
      * @return bool
      */
-    protected function createNewClient(User $user, SubscriptionPlan $plan, array $inboundIds): bool
+    public function createNewClient(int $tg_id, string $name, SubscriptionPlan $plan, array $inboundIds): string
     {
         $uuid       = Str::uuid()->toString();
         $subId      = Str::random(16);
         $expiryTime = now()->addMonths($plan->duration)->timestamp * 1000;
 
         foreach ($inboundIds as $inboundId) {
-            $clientData = $this->buildNewClientData($uuid, $subId, $user, $plan, $expiryTime, 0, '', $inboundId);
+            $clientData = $this->buildNewClientData($uuid, $subId, $tg_id, $name, $plan, $expiryTime, '', $inboundId);
             app(XUIApiService::class)->addClient($inboundId, $clientData);
         }
 
-        return true;
+        return $subId;
     }
 
     /**
@@ -258,8 +328,6 @@ class XUIDataService
         $nowMs    = now()->timestamp * 1000;
         $baseTime = $meta['time_limit'] > $nowMs ? $meta['time_limit'] : $nowMs;
         $expiry   = Carbon::createFromTimestampMs($baseTime)->addMonths($plan->duration)->timestamp * 1000;
-
-        $xuiApi = app(XUIApiService::class);
 
         foreach ($inboundIds as $inboundId) {
             $uuid = $this->getClientUuidBySubId($subKey, $inboundId);
@@ -284,12 +352,16 @@ class XUIDataService
                 continue;
             }
 
-            // فقط این فیلدها رو تغییر بده
-            $existingClient['expiryTime'] = $expiry;
-            $existingClient['totalGB']    = $plan->volume * 1024 * 1024 * 1024;
+            $email = substr($subKey, -5) . '--' . $inboundId . "((({$user->name} - {$plan->users_count}user)))";
+            if ($plan->gigabytes > 1) {
+                $email = substr($subKey, -5) . '--' . $inboundId . "((({$user->name} - {$plan->gigabytes}GB)))";
+            }
 
-            // حالا ارسال اطلاعات جدید
-            $xuiApi->updateClient($inboundId, $uuid, $existingClient);
+            $existingClient['expiryTime'] = $expiry;
+            $existingClient['totalGB']    = $plan->gigabytes * 1024 * 1024 * 1024;
+            $existingClient['email']      = $email;
+
+            $this->api->updateClient($inboundId, $uuid, $existingClient);
         }
 
         return true;
@@ -365,17 +437,24 @@ class XUIDataService
      * @param string $flow
      * @return array
      */
-    protected function buildNewClientData(string $uuid, string $subId, User $user, SubscriptionPlan $plan, int $expiry, int $limitIp, string $flow, int $inboundId): array
+    protected function buildNewClientData(string $uuid, string $subId, int $tg_id, string $name, SubscriptionPlan $plan, int $expiry, string $flow, int $inboundId): array
     {
+        $email = substr($subId, -5) . '--' . $inboundId . "((({$name} - {$plan->users_count}user)))";
+        $limitIp = $plan->users_count;
+        if ($plan->gigabytes > 1) {
+            $email = substr($subId, -5) . '--' . $inboundId . "((({$name} - {$plan->gigabytes}GB)))";
+            $limitIp = 0;
+        }
+
         return [
             'id'         => $uuid,
             'flow'       => $flow,
-            'email'      => substr($subId, -5) . '--' . $inboundId . "((({$user->name} - {$plan->users_count}user)))",
+            'email'      => $email,
             'limitIp'    => $limitIp,
-            'totalGB'    => $plan->total_gb * 1024 * 1024 * 1024,
+            'totalGB'    => $plan->gigabytes * 1024 * 1024 * 1024,
             'expiryTime' => $expiry,
             'enable'     => true,
-            'tgId'       => $user->tg_id ?? '',
+            'tgId'       => $tg_id ?? '',
             'subId'      => $subId,
             'reset'      => 0,
         ];
@@ -400,8 +479,8 @@ class XUIDataService
                     'id'         => $uuid,
                     'flow'       => '',
                     'email'      => substr($subId, -5) . '--' . $inboundId . "((({$user->name} - Test)))",
-                    'limitIp'    => 1,
-                    'totalGB'    => 5 * 1024 * 1024 * 1024, // 5 گیگ
+                    'limitIp'    => 0,
+                    'totalGB'    => 1 * 1024 * 1024 * 1024, // 1 GB
                     'expiryTime' => $expiryTime,
                     'enable'     => true,
                     'tgId'       => $user->tg_id ?? '',
@@ -410,6 +489,10 @@ class XUIDataService
                 ];
                 $this->api->addClient($inboundId, $clientData);
             }
+            Log::channel('xui-api')->info('✅ createTestClient Success ', [
+                'user_id' => $user->id,
+                'tg_id' => $user->tg_id,
+            ]);
 
             return $clientData;
         } catch (\Throwable $e) {
@@ -503,5 +586,4 @@ class XUIDataService
             $this->api->updateInbound($inbound, $inboundId);
         }
     }
-
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use App\Models\User;
@@ -27,15 +28,11 @@ class GlobalBotMiddleware
 
         if (in_array($bot->chatId(), $blockedUsers)) {
             $bot->sendMessage(
-                    text: "حساب کاربری شما توسط ادمین مسدود شد. ❌\n"
-                );
+                text: "حساب کاربری شما توسط ادمین مسدود شد. ❌\n"
+            );
             return;
         }
 
-        // $bot->sendMessage(
-        //     text: "🔃 ربات در حال بروزرسانی می‌باشد... \n📢 آدرس کانال دریچه: " . env('TELEGRAM_BOT_ADMIN_CHANNEL') . "\n آدرس پشتیبانی: @Dariche_vpn_admin\n"
-        // );
-        // return;
         $this->saveLastMessage($bot);
         $this->saveUserInfo($bot);
 
@@ -57,6 +54,7 @@ class GlobalBotMiddleware
         if ($messageId) {
             $bot->setUserData('last_message_id', $messageId, $chatId); // Save the message ID
         }
+
     }
 
     /**

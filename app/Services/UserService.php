@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\User;
@@ -15,7 +16,7 @@ class UserService
      * Retrieve synced XUI user data by Telegram ID.
      *
      * @param string $tgId
-     * @param string $type - all | active | subscription ID
+     * @param string $type - all | active | subscription ID | test
      * @return array
      */
     public function getUserXuiData(string $tgId, string $type = 'all'): array
@@ -30,13 +31,18 @@ class UserService
 
         if ($type === 'active') {
             return collect($xuiData)->filter(function ($sub) {
-                $timeLimit    = $sub['time_limit'] ?? 0;
-                $hasTimeLimit = $timeLimit > 0;
-                $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
-                $userStatus   = $sub['status'] ?? false;
-
-                return $userStatus && ! $isExpired;
+                return $sub['status'] === true;
             })->toArray();
+        }
+
+        if ($type === 'test') {
+            return collect($xuiData)
+                ->filter(function ($sub, $key) {
+                    $keyContainsTest = str_contains(strtolower($key), 'test');
+                    $hasStatus = ($sub['status'] != 'deleted');
+                    return $keyContainsTest && $hasStatus;
+                })
+                ->toArray(); // Return filtered results
         }
 
         return $xuiData[$type] ?? [];
@@ -75,18 +81,19 @@ class UserService
         $timeLimit    = $data['time_limit'] ?? 0;
         $hasTimeLimit = $timeLimit > 0;
         $isExpired    = $hasTimeLimit && $this->isExpired($timeLimit);
-        $userStatus   = $data['status'] ?? null;
+        $userStatus   = $data['status'] ?? 'unknown';
 
-        // Determine subscription status
+        // وضعیت نهایی
         $status = match (true) {
             $userStatus === 'suspended' => $statusMap['suspended'],
-            $userStatus === 'canceled' => $statusMap['canceled'],
-            $userStatus === 'deleted' => $statusMap['deleted'],
-            ! $hasTimeLimit => $statusMap['active'],
-            $isExpired => $statusMap['expired'],
-            default => $statusMap['active'],
+            $userStatus === 'canceled'  => $statusMap['canceled'],
+            $userStatus === 'deleted'   => $statusMap['deleted'],
+            ! $hasTimeLimit             => $statusMap['active'],
+            $isExpired                  => $statusMap['expired'],
+            default                     => $statusMap['active'],
         };
 
+        // نام پلن و حجم‌ها
         $planName     = get_clean_name($data['name']) ?? 'نامشخص';
         $uploadGB     = bytes_to_gb($data['upload'] ?? 0);
         $downloadGB   = bytes_to_gb($data['download'] ?? 0);
@@ -94,9 +101,9 @@ class UserService
         $totalGB      = $totalGBVal > 0 ? bytes_to_gb($totalGBVal) . ' گیگ' : 'نامحدود';
         $usagePercent = number_format($data['usage'] ?? 0, 2);
 
-        // Time left or expiry
+        // تاریخ انقضا
         if ($hasTimeLimit) {
-            $expiryDate      = date("Y-m-d H:i:s", $timeLimit / 1000);
+            $expiryDate      = toShamsi((int) ($timeLimit / 1000));
             $timeLeftDetails = calculate_time_left($timeLimit);
             $timeLeft        = $isExpired ? '' : sprintf(
                 "(%d روز و %d ساعت و %d دقیقه دیگر باقی مانده)\n\n",
@@ -113,17 +120,22 @@ class UserService
             $timeLeft   = "\n\n";
         }
 
-        // Subscription links
-        $panelBase = sprintf(
-            "%s://%s:%s",
-            env('XUI_SSL_ACTIVE') ? 'https' : 'http',
-            env('XUI_SUB_DOMAIN'),
-            env('XUI_SUB_PORT')
-        );
+        // لینک اشتراک فقط اگر وضعیت غیرفعال یا لغو شده یا حذف شده نباشه
+        if ($data['status']) {
+            $panelBase = sprintf(
+                "%s://%s:%s",
+                env('XUI_SSL_ACTIVE') ? 'https' : 'http',
+                env('XUI_SUB_DOMAIN'),
+                env('XUI_SUB_PORT')
+            );
 
-        $subscriptionId = $data['subscription'] ?? '';
-        $subUrl         = "{$panelBase}/" . env('XUI_SUB_PATH') . "/{$subscriptionId}";
-        $jsonUrl        = "{$panelBase}/" . env('XUI_SUB_JSON_PATH') . "/{$subscriptionId}";
+            $subscriptionId = $data['subscription'] ?? '';
+            $subUrl  = "{$panelBase}/" . env('XUI_SUB_PATH') . "/{$subscriptionId}";
+            $jsonUrl = "{$panelBase}/" . env('XUI_SUB_JSON_PATH') . "/{$subscriptionId}";
+        } else {
+            $subUrl  = 'لینک اشتراک در دسترس نیست';
+            $jsonUrl = 'لینک اشتراک در دسترس نیست';
+        }
 
         return <<<INFO
 ━━━━━━━━━━━━━━━━━━━━
@@ -133,10 +145,8 @@ class UserService
 📊 *مصرف*: {$usagePercent}% (آپلود: {$uploadGB} گیگ / دانلود: {$downloadGB} گیگ)
 🧮 *حجم کل*: {$totalGB}
 ⏳ *تاریخ انقضا*: {$expiryDate}
-{$timeLeft}🔗 *لینک معمولی*:
+{$timeLeft}🔗 *لینک اشتراک*:
 `{$subUrl}`
-🔗 *لینک حرفه‌ای*:
-`{$jsonUrl}`
 
 INFO;
     }
