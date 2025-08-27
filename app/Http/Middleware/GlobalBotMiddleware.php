@@ -80,10 +80,6 @@ class GlobalBotMiddleware
     {
         try {
             $chatId = $bot->chatId();
-
-            if (this_id_is_admin($chatId)) {
-                return true;
-            }
             $channelUsername = env('TELEGRAM_BOT_ADMIN_CHANNEL');
 
             $chatMemberInfo = $bot->getChatMember($channelUsername, $chatId);
