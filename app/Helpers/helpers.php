@@ -5,11 +5,7 @@ use SergiX44\Nutgram\Nutgram;
 if (! function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
-        $characters = ['[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        foreach ($characters as $char) {
-            $text = str_replace($char, '\\' . $char, $text);
-        }
-        return $text;
+        return preg_replace('/([_*\[\]()~`>#+\-=|{}\.!])/', '\\\\$1', $text);
     }
 }
 
