@@ -187,27 +187,21 @@ MSG;
                 $limit = $user['total'] ?: $user['totalGB']; // در صورت خالی بودن یکی از دو مقدار
                 $remain = $limit - $used;
 
-                // اگر محدودیت تعریف نشده بود، رد کن
                 if ($limit <= 0) continue;
 
                 $name = get_clean_name($user['email'] ?? 'کاربر');
-                // اگر حجم تموم یا بیشتر مصرف شده
                 if ($used >= $limit && $user['enable']) {
-                    // غیرفعال کردن کاربر
                     $xui->disbaleUser($user['subId']);
                     $results[] = [
                         'tg_id' => $tgId,
-                        'message' => "$name عزیز،\n\n❌ حجم شما به پایان رسیده و سرویس شما غیرفعال شد."
+                        'message' => "$name جان 😢،\n\n❌ حجم فیلترشکنت تموم شد و سرویس غیرفعال شد! برای ادامه، روی دکمه 'تمدید یا خرید اشتراک' بزن 💳"
                     ];
-                }
-
-                // اگر کمتر از N گیگ باقی مونده بود
-                elseif ($remain < (env('WARNING_BANDLIMIT') * 1024 * 1024 * 1024)) {
+                } elseif ($remain < (env('WARNING_BANDLIMIT') * 1024 * 1024 * 1024)) {
                     $remainingGB = round($remain / (1024 * 1024 * 1024), 2);
 
                     $results[] = [
                         'tg_id' => $tgId,
-                        'message' => "$name عزیز،\n\n⚠️ فقط {$remainingGB} گیگابایت از حجم شما باقی‌مانده است. لطفاً برای جلوگیری از قطع سرویس اقدام کنید."
+                        'message' => "$name جان 😎،\n\n⚠️ فقط {$remainingGB} گیگابایت از حجم فیلترشکنت باقی مونده! برای شارژ سریع، روی دکمه 'تمدید یا خرید اشتراک' بزن 🚀"
                     ];
                 }
             }
