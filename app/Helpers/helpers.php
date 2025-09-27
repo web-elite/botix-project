@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
 use SergiX44\Nutgram\Nutgram;
 
 if (! function_exists('escape_markdown')) {

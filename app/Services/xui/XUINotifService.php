@@ -8,11 +8,10 @@ use Illuminate\Support\Facades\Log;
 
 class XUINotifService
 {
-    protected UserSyncService $userSync;
-
-    public function __construct(UserSyncService $userSync)
+    protected UserSyncService $api;
+    public function __construct(UserSyncService $api)
     {
-        $this->api = $userSync;
+        $this->api = $api;
     }
 
     public function prepareExpiringData(): array

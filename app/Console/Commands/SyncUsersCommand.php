@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Console\Commands;
 
 use App\Services\UserSyncService;
@@ -20,6 +21,8 @@ class SyncUsersCommand extends Command
      * @var string
      */
     protected $description = 'Sync users with Telegram and Other Panels every 6 hours';
+
+    protected UserSyncService $userSyncService;
 
     public function __construct(UserSyncService $userSyncService)
     {
