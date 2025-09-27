@@ -5,7 +5,7 @@ use SergiX44\Nutgram\Nutgram;
 if (! function_exists('escape_markdown')) {
     function escape_markdown(string $text): string
     {
-        return preg_replace('/([_*\[\]()~`>#+\-=|{}\.!])/', '\\\\$1', $text);
+        return preg_quote($text);
     }
 }
 
