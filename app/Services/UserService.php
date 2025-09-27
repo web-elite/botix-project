@@ -7,6 +7,8 @@ use App\Services\UserSyncService;
 
 class UserService
 {
+    protected UserSyncService $syncService;
+
     public function __construct(UserSyncService $userSyncService)
     {
         $this->syncService = $userSyncService;
@@ -39,7 +41,7 @@ class UserService
             return collect($xuiData)
                 ->filter(function ($sub, $key) {
                     $keyContainsTest = str_contains(strtolower($key), 'test');
-                    $hasStatus = ($sub['status'] != 'deleted');
+                    $hasStatus      = isset($sub['status']) && $sub['status'] === true;
                     return $keyContainsTest && $hasStatus;
                 })
                 ->toArray(); // Return filtered results
