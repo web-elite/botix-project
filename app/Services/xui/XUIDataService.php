@@ -12,8 +12,7 @@ use Illuminate\Support\Str;
 
 class XUIDataService
 {
-    protected XUIApiService $xuiApi;
-
+    protected XUIApiService $api;
     public function __construct(XUIApiService $xuiApi)
     {
         $this->api = $xuiApi;
@@ -480,7 +479,7 @@ class XUIDataService
                     'flow'       => '',
                     'email'      => substr($subId, -5) . '--' . $inboundId . "((({$user->name} - Test)))",
                     'limitIp'    => 0,
-                    'totalGB'    => 1 * 1024 * 1024 * 1024, // 1 GB
+                    'totalGB'    => 0.5 * 1024 * 1024 * 1024, // 0.5 GB
                     'expiryTime' => $expiryTime,
                     'enable'     => true,
                     'tgId'       => $user->tg_id ?? '',
